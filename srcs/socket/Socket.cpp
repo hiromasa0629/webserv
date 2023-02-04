@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/04 01:19:45 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/04 16:04:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
  * Constructors
 ***********************************/
 
-Socket::Socket(void)
+Socket::Socket(void) : _addrinfo(NULL), _socketfd(0)
 {
 	addrinfo_t		hint;
 	int				gai;
@@ -28,7 +28,13 @@ Socket::Socket(void)
 
 	gai = getaddrinfo(NULL, "http", &hint, &(this->_addrinfo));
 	if (gai != 0)
-		throw std::runtime_error(gai_strerror(gai));
+	{
+		
+	}
+
+	this->_socketfd = socket(this->get_addrinfo()->ai_family, this->get_addrinfo()->ai_socktype, this->get_addrinfo()->ai_protocol);
+	if (this->_socketfd < 0)
+
 }
 
 Socket::Socket(const Socket &src)
@@ -54,6 +60,11 @@ Socket	&Socket::operator=(const Socket &rhs)
 	this->get_addrinfo()->ai_next = rhs.get_addrinfo()->ai_next;
 	return (*this);
 }
+
+/***********************************
+ *	Functions
+***********************************/
+
 
 /***********************************
  * Getters

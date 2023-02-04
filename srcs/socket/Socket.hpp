@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:45 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/04 01:08:16 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/04 16:04:19 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,18 @@ class Socket {
 		Socket(const Socket &src);
 		Socket	&operator=(const Socket &rhs);
 
+		// Getters
 		addrinfo_t*	get_addrinfo(void) const;
+		
+		// Setters
+		
 
 	private:
 		addrinfo_t*		_addrinfo;
+		int				_socketfd;
+	
+	protected:
+	
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/04 00:27:39 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/04 16:03:10 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,18 +18,20 @@
 
 Server::Server(void)
 {
-
+	
 }
 
 Server::Server(const Server &src)
 {
-
+	*this = src;
 }
 
 Server	&Server::operator=(const Server &rhs)
 {
-
+	(void)rhs;
 }
+
+
 
 /***********************************
  * Destructors
@@ -37,5 +39,5 @@ Server	&Server::operator=(const Server &rhs)
 
 Server::~Server(void)
 {
-
+	
 }
