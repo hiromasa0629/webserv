@@ -26,10 +26,10 @@ struct addrinfo {
   int     ai_flags;          // AI_PASSIVE, AI_CANONNAME, ...
   int     ai_family;         // AF_xxx
   int     ai_socktype;       // SOCK_xxx
-  int     ai_protocol;       // 0 (auto) or IPPROTO_TCP, IPPROTO_UDP 
+  int     ai_protocol;       // 0 (auto) or IPPROTO_TCP, IPPROTO_UDP
 
   socklen_t  ai_addrlen;     // length of ai_addr
-  char   *ai_canonname;      // canonical name for nodename
+  char   *ai_canonname;      // canonical name for hostname
   struct sockaddr  *ai_addr; // binary address
   struct addrinfo  *ai_next; // next structure in linked list
 };
@@ -65,7 +65,7 @@ int accept(int sockfd, struct sockaddr *client_addr, socklen_t *client_addrlen);
 ```
 ```c++
 // Returns 0 on success, -1 on error
-// getaddrinfo 
+// getaddrinfo
 // serv_addr	= addrinfo
 int connect(int sockfd, const struct sockaddr *serv_addr, socklen_t serv_addrlen);
 ```
