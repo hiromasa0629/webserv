@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/04 16:04:05 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/05 23:58:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,23 +18,20 @@
 
 Socket::Socket(void) : _addrinfo(NULL), _socketfd(0)
 {
-	addrinfo_t		hint;
-	int				gai;
 
-	hint.ai_flags = AI_PASSIVE;
-	hint.ai_family = AF_INET;
-	hint.ai_socktype = SOCK_STREAM;
-	hint.ai_protocol = 0;
+}
 
-	gai = getaddrinfo(NULL, "http", &hint, &(this->_addrinfo));
-	if (gai != 0)
+Socket::Socket(int ai_flags, int ai_family, int ai_socktype, int ai_protocol) : _addrinfo(NULL), _socketfd(0)
+{
+	try
 	{
-		
+		this->init_addrinfo(ai_flags, ai_family, ai_socktype, ai_protocol);
+		this->init_socket();
 	}
-
-	this->_socketfd = socket(this->get_addrinfo()->ai_family, this->get_addrinfo()->ai_socktype, this->get_addrinfo()->ai_protocol);
-	if (this->_socketfd < 0)
-
+	catch (const std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
 }
 
 Socket::Socket(const Socket &src)
@@ -44,6 +41,9 @@ Socket::Socket(const Socket &src)
 
 Socket	&Socket::operator=(const Socket &rhs)
 {
+	if (this == &rhs)
+		return (*this);
+
 	this->_addrinfo = new addrinfo_t();
 	this->get_addrinfo()->ai_flags = rhs.get_addrinfo()->ai_flags;
 	this->get_addrinfo()->ai_family = rhs.get_addrinfo()->ai_family;
@@ -62,11 +62,6 @@ Socket	&Socket::operator=(const Socket &rhs)
 }
 
 /***********************************
- *	Functions
-***********************************/
-
-
-/***********************************
  * Getters
 ***********************************/
 
@@ -82,4 +77,30 @@ Socket::addrinfo_t*	Socket::get_addrinfo(void) const
 Socket::~Socket(void)
 {
 	freeaddrinfo(this->_addrinfo);
+}
+
+/***********************************
+ *	Private Functions
+***********************************/
+
+void	Socket::init_addrinfo(int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
+{
+	addrinfo_t		hint;
+	int				gai;
+
+	hint.ai_flags = ai_flags;
+	hint.ai_family = ai_family;
+	hint.ai_socktype = ai_socktype;
+	hint.ai_protocol = ai_protocol;
+
+	gai = getaddrinfo(NULL, "http", &hint, &(this->_addrinfo));
+	if (gai != 0)
+		throw std::runtime_error(gai_strerror(gai));
+}
+
+void	Socket::init_socket(void)
+{
+	this->_socketfd = socket(this->get_addrinfo(  )->ai_family, this->get_addrinfo()->ai_socktype, this->get_addrinfo()->ai_protocol);
+	if (this->_socketfd < 0)
+		throw std::runtime_error("[Error] Socket::init_socket()");
 }
