@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:45 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/06 00:27:34 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/07 21:11:20 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,13 +19,17 @@
 # include <exception>
 # include <fcntl.h>
 # include <unistd.h>
+# include <sys/select.h>
+# include <sys/time.h>
+# include <sstream>
+# include "colors.hpp"
 
 class Socket {
 	public:
 		typedef struct addrinfo		addrinfo_t;
 		typedef struct sockaddr		sockaddr_t;
 
-		Socket(int ai_flags, int ai_family, int ai_socktype, int ai_protocol);
+		Socket(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port);
 		~Socket(void);
 		Socket(const Socket &src);
 		Socket	&operator=(const Socket &rhs);
@@ -34,11 +38,15 @@ class Socket {
 		addrinfo_t*	get_addrinfo(void) const;
 
 	private:
-		void		init_addrinfo(int ai_flags, int ai_family, int ai_socktype, int ai_protocol);
+		void		init_addrinfo(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port);
 		void		init_socket(void);
 
 	protected:
 		Socket(void);
+		
+		std::string		get_ip(void) const;
+		unsigned short	get_port(void) const;
+		
 
 		addrinfo_t*		_addrinfo;
 		int				_socketfd;

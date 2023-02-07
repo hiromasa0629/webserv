@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/06 00:44:54 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/07 20:58:24 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ Server::Server(void)
 
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol)
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol, hostname, port)
 {
 	try
 	{
@@ -30,7 +30,7 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol) : 
 	}
 	catch (const std::exception& e)
 	{
-		std::cerr << e.what() << std::endl;
+		std::cerr << RED << e.what() << RESET << std::endl;
 	}
 
 }
@@ -49,21 +49,22 @@ Server	&Server::operator=(const Server &rhs)
 
 void	Server::accept_connection(void)
 {
-	int	new_sockfd;
+	int				newfd;
+	int				maxfd;
+	int				val_read;
+	
 
 	while (1)
 	{
-		if ((new_sockfd = accept(this->_socketfd, this->_addrinfo->ai_addr, &this->_addrinfo->ai_addrlen)) < 0)
+		if ((newfd = accept(this->_socketfd, this->_addrinfo->ai_addr, &this->_addrinfo->ai_addrlen)) < 0)
 			return ;
-		std::cout << new_sockfd << std::endl;
-		fcntl(new_sockfd, F_SETFL, O_NONBLOCK);
-		const char* response =
-			"HTTP/1.1 200 OK\r\n"
-			"Content-Type: text/plain\r\n\r\n"
-			"Content-Length: 13\r\n"
-			"Hello world!";
-		write(new_sockfd, response, std::strlen(response));
-		close(new_sockfd);
+		std::cout << newfd << std::endl; 
+		char buf[3000] = {0};
+		val_read = recv(newfd, buf, 3000, 0);
+		std::cout << buf << std::endl; // print request header
+		const char* response = "HTTP/1.1 200 OK\nContent-Type: text/plain\nContent-Length: 12\n\nHello world!";
+		send(newfd, response, std::strlen(response), 0);
+		close(newfd);
 	}
 }
 
@@ -84,10 +85,12 @@ void	Server::init_bind(void)
 {
 	if (bind(this->_socketfd, this->_addrinfo->ai_addr, this->_addrinfo->ai_addrlen) < 0)
 		throw std::runtime_error("[Error] Server::init_bind()");
+	std::cout << INFO("Server::init_bind") << std::endl;
 }
 
 void	Server::init_listen(void)
 {
 	if (listen(this->_socketfd, 10))
 		throw std::runtime_error("[Error] Server::init_listen()");
+	std::cout << INFO("Server::init_listen") << "Listening..." << std::endl;
 }

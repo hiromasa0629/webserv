@@ -6,7 +6,7 @@
 #    By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/02/04 01:21:04 by hyap              #+#    #+#              #
-#    Updated: 2023/02/06 00:10:05 by hyap             ###   ########.fr        #
+#    Updated: 2023/02/07 20:20:08 by hyap             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -17,7 +17,7 @@ OBJSDIR		= srcs/obj
 OBJS 		= $(SRCS:%.cpp=%.o)
 DEPENDSDIR	= srcs/depends
 DEPENDS		= $(SRCS:%.cpp=%.d)
-CPPFLAGS	= -Wall -Werror -Wextra -Wshadow -std=c++98 -pedantic -Isrcs/server -I srcs/socket
+CPPFLAGS	= -Wall -Werror -Wextra -Wshadow -std=c++98 -pedantic -Isrcs/server -Isrcs/socket -Isrcs/utils
 LDFLAGS		= -g -lstdc++ # -fsanitize=address
 
 
