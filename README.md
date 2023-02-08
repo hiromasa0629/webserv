@@ -6,7 +6,7 @@
 # **Server side**
 - Step 1: Load up address structs `getaddrinfo()`
 - Step 2: Create a socket `socket()`
-  - Make socket non-blocking using fcntl
+  - Make socket non-blocking using `fcntl()` so `poll()` will work
 - Step 3: Bind the socket `bind()`
 - Step 4: Listen on the socket `listen()`
 - Step 5: Accept a connection `accept()`

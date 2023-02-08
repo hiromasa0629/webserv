@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:45 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/07 21:11:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/08 20:10:10 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,9 @@
 # include <sys/time.h>
 # include <sstream>
 # include "colors.hpp"
+# include <poll.h>
+# include <vector>
+# include <iterator>
 
 class Socket {
 	public:

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/07 21:11:27 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/08 16:58:11 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ Socket::addrinfo_t*	Socket::get_addrinfo(void) const
 
 Socket::~Socket(void)
 {
+	close(this->_socketfd);
 	freeaddrinfo(this->_addrinfo);
 }
 
@@ -104,7 +105,9 @@ void	Socket::init_socket(void)
 	this->_socketfd = socket(this->get_addrinfo()->ai_family, this->get_addrinfo()->ai_socktype, this->get_addrinfo()->ai_protocol);
 	if (this->_socketfd < 0)
 		throw std::runtime_error("[Error] Socket::init_socket()");
-	std::cout << INFO("Socket::init_socket") << std::endl;
+	int tmp = 1;
+	setsockopt(this->_socketfd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(tmp) );
+	std::cout << INFO("Socket::init_socket (non-blocking)") << std::endl;
 	
 }
 
