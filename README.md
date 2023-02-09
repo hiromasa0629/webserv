@@ -2,20 +2,55 @@
 - HTTP server build from scratch - https://medium.com/from-the-scratch/http-server-what-do-you-need-to-know-to-build-a-simple-http-server-from-scratch-d1ef8945e4fa
 - C++ Network Programming Part 1: Sockets - https://www.youtube.com/watch?v=gntyAFoZp-E
 - Man pages - https://beej.us/guide/bgnet/html/#bindman
-- epoll() - https://web.archive.org/web/20120504033548/https://banu.com/blog/2/how-to-use-epoll-a-complete-example-in-c/
+- epoll() (Not available on Mac, alternatives - kqueue) - https://web.archive.org/web/20120504033548/https://banu.com/blog/2/how-to-use-epoll-a-complete-example-in-c/
 # **Server side**
 - Step 1: Load up address structs `getaddrinfo()`
 - Step 2: Create a socket `socket()`
-  - Make socket non-blocking using `fcntl()` so `poll()` will work
 - Step 3: Bind the socket `bind()`
 - Step 4: Listen on the socket `listen()`
+  - insert socketfd into the fds pool
+  - set a timeout on `poll()`
+  - `poll()` the fd pool to watch for `POLLIN` or `POLLOUT` events
 - Step 5: Accept a connection `accept()`
+  - set accepted connection fd to non-blocking
 
 # **Client side**
 - Step 1: Loud up address structs `getaddrinfo()`
 - Step 2: Create socket `socket()`
 - Step 3: Connect to the server `connect()`
+  
+---
+I found this answer a great explanation for `poll()` in c on StackOverflow - https://stackoverflow.com/questions/19557941/implementing-poll-on-a-tcp-servers-read-write
 
+```c
+int i, n;
+
+n = poll(ufds, num_fds_in_array, timeout_value);
+
+/* errors or timeout? */
+if (n < 1)
+    ;
+
+for (i = 0; i < num_fds_in_array; i++) {
+    /* were there any events for this socket? */
+    if (!ufds[i].revents)
+        continue;
+
+    /* is it our listening socket? */
+    if (!i) {
+         if (ufds[0].revents & POLLIN)
+             /* call accept() and add the new socket to ufds */
+         else
+             /* error */
+
+         continue;
+    }
+
+    /* is there incoming data on the socket? */
+    if (ufds[i].revents & POLLIN)
+        /* call recv() on the socket and decide what to do from there */
+}
+```
 # **Functions**
 ### includes
 - sys/socket.h
@@ -87,17 +122,27 @@ int send(int sockfd, const void *msg, int len, int flags);
 // Returns the number of bytes actually received, -1 on error
 int recv(int sockfd, void *buf, int len, int flags);
 ```
-select()
+poll()
 ```c++
-# include <sys/select.h>
-# include <sys/time.h>
+#include <sys/poll.h>
 
-FD_SET(int fd, fd_set *set); // Add fd into the set
-FD_CLR(int fd, fd_set *set); // Remove fd from the set
-FD_ISSET(int fd, fd_set *set); // Returns true if fd is in the set
-FD_ZERO(fd_set *set); // Clear all entries in the set
+struct pollfd {
+    int fd;         // the socket descriptor
+    short events;   // bitmap of events we're interested in
+    short revents;  // when poll() returns, bitmap of events that occurred
+};
 
-// Returns the number of fds in the set on success, 0 on timeout, -1 on error
-int select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);
+// POLLIN		Alert me when data is ready to recv() on this socket.
+// POLLOUT		Alert me when I can send() data to this socket without blocking.
+// POLLPRI		Alert me when out-of-band data is ready to recv() on this socket.
+// POLLERR		An error has occurred on this socket.
+// POLLHUP		The remote side of the connection hung up.
+// POLLNVAL		Something was wrong with the socket descriptor fd—maybe it’s uninitialized?
+
+// Returns the number of elements in the ufds that had event occur, 0 if timeout, -1 on error
+// ufds		= fd pool
+// nfds		= nunber of fds in the pool
+// timeout	= in ms
+int poll(struct pollfd *ufds, unsigned int nfds, int timeout);
 ```
 ---

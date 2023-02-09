@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/08 16:58:11 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/09 19:33:11 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,6 +103,7 @@ void	Socket::init_addrinfo(int ai_flags, int ai_family, int ai_socktype, int ai_
 void	Socket::init_socket(void)
 {
 	this->_socketfd = socket(this->get_addrinfo()->ai_family, this->get_addrinfo()->ai_socktype, this->get_addrinfo()->ai_protocol);
+	std::cout << _socketfd << std::endl;
 	if (this->_socketfd < 0)
 		throw std::runtime_error("[Error] Socket::init_socket()");
 	int tmp = 1;
