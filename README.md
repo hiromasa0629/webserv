@@ -146,3 +146,18 @@ struct pollfd {
 int poll(struct pollfd *ufds, unsigned int nfds, int timeout);
 ```
 ---
+# **Directives**
+```
+server {
+	listen	[port]		listening port
+	root	[root dir]	root directory for files to be served
+	
+	error_page	[error_code] [path to page]	display page if error
+	
+	location [path] {
+		limit_except	[methods]		limitting request methods (multiple)
+		index			[index file]	serve default page for path
+		redirect		[path]			redirect to path
+	}
+}
+```

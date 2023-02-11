@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/09 20:17:08 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/11 15:59:52 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,13 @@
 # define SERVER_H
 # include <iostream>
 # include "Socket.hpp"
+# include "Config.hpp"
 
 class Server : public Socket {
 	public:
 		typedef struct pollfd	pollfd_t;
 	
-		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port);
+		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port, const char* config_file);
 		~Server(void);
 		Server(const Server &src);
 		Server	&operator=(const Server &rhs);
@@ -43,8 +44,8 @@ class Server : public Socket {
 		
 
 		std::vector<pollfd_t>		_fds;
-		
 		static const char*			_example_res;
+		Config						_config;
 };
 
 bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs);

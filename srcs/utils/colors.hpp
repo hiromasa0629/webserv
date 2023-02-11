@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/07 20:19:09 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/07 20:23:45 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/11 16:52:15 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,5 +64,6 @@
 # define BG_WHITE    "\033[107m"
 
 # define INFO(func)	BOLD""BLUE"[INFO] "CYAN""func" "RESET
+# define ERROR(func) BOLD""RED"[ERROR] "LRED""func" "RESET
 
 #endif

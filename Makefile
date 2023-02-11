@@ -6,22 +6,25 @@
 #    By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/02/04 01:21:04 by hyap              #+#    #+#              #
-#    Updated: 2023/02/07 20:20:08 by hyap             ###   ########.fr        #
+#    Updated: 2023/02/11 16:26:47 by hyap             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME		= main
 SRCSDIR		= srcs
-SRCS		= $(wildcard $(SRCSDIR)/*.cpp) $(wildcard $(SRCSDIR)/socket/*.cpp) $(wildcard $(SRCSDIR)/server/*.cpp)
+SRCS		= $(wildcard $(SRCSDIR)/*.cpp) $(wildcard $(SRCSDIR)/socket/*.cpp) $(wildcard $(SRCSDIR)/server/*.cpp) $(wildcard $(SRCSDIR)/config/*.cpp)
 OBJSDIR		= srcs/obj
 OBJS 		= $(SRCS:%.cpp=%.o)
 DEPENDSDIR	= srcs/depends
 DEPENDS		= $(SRCS:%.cpp=%.d)
-CPPFLAGS	= -Wall -Werror -Wextra -Wshadow -std=c++98 -pedantic -Isrcs/server -Isrcs/socket -Isrcs/utils
+CPPFLAGS	= -Wall -Werror -Wextra -Wshadow -std=c++98 -pedantic -Isrcs/server -Isrcs/socket -Isrcs/utils -Isrcs/config
 LDFLAGS		= -g -lstdc++ # -fsanitize=address
 
+TESTFILE	= srcs/tests/test.conf
 
 all: $(NAME)
+	@$(MAKE) clean
+	@./main $(TESTFILE)
 
 $(NAME): $(OBJS)
 	$(CC) $(LDFLAGS) $^ -o $(NAME)

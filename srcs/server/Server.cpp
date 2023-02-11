@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/09 20:21:26 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/11 16:11:35 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ Server::Server(void)
 
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol, hostname, port)
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port, const char* config_file) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol, hostname, port), _config(config_file)
 {
 	try
 	{
@@ -35,7 +35,7 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 		std::cout << errno << std::endl;
 		std::cerr << RED << e.what() << RESET << std::endl;
 	}
-
+	
 }
 
 Server::Server(const Server &src)
