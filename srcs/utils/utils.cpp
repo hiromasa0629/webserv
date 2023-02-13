@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 16:45:12 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/13 21:42:47 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,33 +30,41 @@ bool	is_empty_string(const std::string& s)
 	return (true);
 }
 
-std::string	get_nth_word(const std::string& s, int n)
+StrVec	ft_split(const std::string& s)
 {
-	size_t	start;
-	size_t	end;
-	size_t	i;
-	int		count;
+	std::stringstream			ss(s);
+	std::string					word;
+	StrVec						res;
 	
-	start = 0;
-	end = 0;
-	count = 0;
+	while (ss >> word)
+		res.push_back(word);
+	return (res);
+}
+
+bool	is_valid_server_directives(std::string s)
+{
+	size_t				size;
+	size_t				i;
+	
+	size = sizeof(default_server_directives)/sizeof(default_server_directives[0]);
 	i = 0;
-	while (i < s.length())
-	{
-		if (is_whitespaces(s[i]))
-			i++;
-		else if (!is_whitespaces(s[i]))
-		{
-			start = i;
-			while (!is_whitespaces(s[i]))
-				i++;
-			end = i + 1;
-			count++;
-		}
-		if (count == n)
-			break ;
-	}
-	return (s.substr(start, end));
+	while (i < size)
+		if (s == default_server_directives[i++])
+			return (true);
+	return (false);
+}
+
+bool	is_valid_location_directives(std::string s)
+{
+	size_t				size;
+	size_t				i;
+	
+	size = sizeof(default_location_directives)/sizeof(default_location_directives[0]);
+	i = 0;
+	while (i < size)
+		if (s == default_location_directives[i++])
+			return (true);
+	return (false);
 }
 
 }

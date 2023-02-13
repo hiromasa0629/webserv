@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 16:44:52 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/13 21:43:11 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ Config::Config(void)
 
 Config::Config(const char* config_file)
 {	
-	
+	this->init_default_directives();
 	try
 	{
 		this->save_config(config_file);
@@ -51,36 +51,19 @@ Config	&Config::operator=(const Config &rhs)
 
 void	Config::init_default_directives(void)
 {
-	this->_default_server_directives.push_back("listen");
-	this->_default_server_directives.push_back("root");
-	this->_default_server_directives.push_back("error_page");
-	this->_default_server_directives.push_back("location");
-	this->_default_server_directives.push_back("limit_except");
-	this->_default_server_directives.push_back("index");
-	this->_default_server_directives.push_back("client_max_body_size");
-	this->_default_server_directives.push_back("cgi");
-	
-	this->_default_location_directives.push_back("root");
-	this->_default_location_directives.push_back("error_page");
-	this->_default_location_directives.push_back("limit_except");
-	this->_default_location_directives.push_back("index");
-	this->_default_location_directives.push_back("redirect");
-	this->_default_location_directives.push_back("autoindex");
-	this->_default_location_directives.push_back("cgi");
+
 }
 
 void	Config::save_config(const char* config_file)
 {
 	std::ifstream	infile(config_file);
 	std::string		line;
-	// char	ws[6] = {32, 9, 10, 11, 12, 13};
 
 	while (std::getline(infile, line))
 	{
 		if (utils::is_empty_string(line))
 			continue ;
 		line = line.substr(line.find_first_not_of(utils::ws), line.find_last_not_of(utils::ws) + 1);
-		std::cout << line << std::endl;
 		this->_conf.push_back(line);
 	}
 	infile.close();
@@ -89,27 +72,36 @@ void	Config::save_config(const char* config_file)
 
 void	Config::parse_config(void)
 {
-	std::vector<std::string>::iterator	start;
-	std::vector<std::string>::iterator	end;
-	size_t								i;
+	utils::StrVec::iterator	start;
+	utils::StrVec::iterator	end;
+	size_t					i;
 
 	i = 0;
 	while (i < this->_conf.size())
 	{
-		if (utils::get_nth_word(this->_conf[i], 1) == "server")
+		if (utils::ft_split(this->_conf[i])[0] == "server")  
 		{
-			start = this->_conf.begin() + i;
+			start = this->_conf.begin() + i + 1;
 			i++;
-			while (utils::get_nth_word(this->_conf[i], 1) != "server" && i < this->_conf.size())
+			while (i < this->_conf.size() && utils::ft_split(this->_conf[i])[0] != "server")
 				i++;
 			if (i == this->_conf.size())
-				end = this->_conf.end();
+				end = this->_conf.end() - 1;
 			else
 				end = this->_conf.begin() + i - 1;
-			
+			this->_sconfig.push_back(ServerConfig(start, end));
 		}
 		else
 			i++;
+	}
+}
+
+void	Config::print_config(void)
+{
+	for (size_t i = 0; i < this->_sconfig.size(); i++)
+	{
+		std::cout << BOLD << BLUE << "========== Server ==========" << RESET << std::endl;
+		this->_sconfig[i].print_directives();
 	}
 }
 
@@ -126,16 +118,116 @@ Config::~Config(void)
  *  ServerConfigs
 ***********************************/
 
-ServerConfigs::ServerConfigs(void) {}
+ServerConfig::ServerConfig(void) {}
 
-ServerConfigs::~ServerConfigs(void) {}
+ServerConfig::~ServerConfig(void) {}
 
+ServerConfig::ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterator end)
+{
+	utils::StrVec::iterator	first;
+	utils::StrVec::iterator	last;
+	utils::StrVec			split;
+	
+	while (start < end)
+	{
+		split = utils::ft_split(*start);
+		if (split[0] == "location")
+		{
+			first = ++start;
+			while (start < end && utils::ft_split(*start)[0] != "location")
+				start++;
+			if (start == end)
+				last = end - 1;
+			else
+				last = start - 1;
+			this->_lconfig.insert(std::make_pair(split[1], LocationConfig(first, last)));
+		}
+		else
+		{
+			this->set_directives(*start);
+			start++;
+		}
+	}
+}
 
+void	ServerConfig::set_directives(const std::string& s)
+{
+	utils::StrVec	split;
+	std::string		key;
+	
+	split = utils::ft_split(s);
+	key = split[0];
+	if (!utils::is_valid_server_directives(key))
+		throw std::runtime_error("\"" + key + "\" invalid server directive");
+	split.erase(split.begin());
+	if (this->_directives.find(key) == this->_directives.end())
+		this->_directives[key] = split;
+	else
+		this->_directives[key].insert(this->_directives[key].end(), split.begin(), split.end());
+}
+
+void	ServerConfig::print_directives(void)
+{
+	utils::StrToStrVecMap::iterator	it;
+	std::map< std::string, LocationConfig >::iterator	it2;
+	
+	it = this->_directives.begin();
+	while (it != this->_directives.end())
+	{
+		std::cout << CYAN << it->first << " " << RESET;
+		for (size_t i = 0; i < it->second.size(); i++)
+			std::cout << (it->second)[i] << " ";
+		std::cout << std::endl;
+		it++;
+	}
+	it2 = this->_lconfig.begin();
+	while (it2 != this->_lconfig.end())
+	{
+		std::cout << RED << it2->first << RESET << std::endl;
+		it2->second.print_directives();
+		it2++;
+	}
+}
 
 /***********************************
  *  LocationConfigs
 ***********************************/
 
-LocationConfigs::LocationConfigs(void) {}
+LocationConfig::LocationConfig(void) {}
 
-LocationConfigs::~LocationConfigs(void) {}
+LocationConfig::~LocationConfig(void) {}
+
+LocationConfig::LocationConfig(utils::StrVec::iterator start, utils::StrVec::iterator end)
+{
+	while (start < end)
+	{
+		this->set_directives(*start);
+		start++;
+	}
+}
+
+void	LocationConfig::set_directives(const std::string& s)
+{
+	utils::StrVec	split;
+	std::string		key;
+	
+	split = utils::ft_split(s);
+	key = split[0];
+	split.erase(split.begin());
+	this->_directives[key] = split;
+}
+
+void	LocationConfig::print_directives(void)
+{
+	utils::StrToStrVecMap::iterator	it;
+	
+	it = this->_directives.begin();
+	while (it != this->_directives.end())
+	{
+		std::cout << "\t" << CYAN << it->first << " " << RESET;
+		for (size_t i = 0; i < it->second.size(); i++)
+			std::cout << (it->second)[i] << " ";
+		std::cout << std::endl;
+		it++;
+	}
+}

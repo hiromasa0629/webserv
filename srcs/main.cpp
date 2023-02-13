@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 01:19:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 16:19:10 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/13 20:48:31 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,8 @@ int	main(int ac, char** argv)
 	// server.run();
 	
 	Config	config(argv[1]);
+	
+	config.print_config();
 
 	return (0);
 }

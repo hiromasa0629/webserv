@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:07 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 16:43:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/13 21:11:19 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,20 +20,28 @@
 # include "utils.hpp"
 # include <map>
 
-struct LocationConfigs {
-	LocationConfigs(void);
-	~LocationConfigs(void);
+struct LocationConfig {
+	LocationConfig(void);
+	LocationConfig(utils::StrVec::iterator start, utils::StrVec::iterator end);
+	~LocationConfig(void);
 	
-	std::map< std::string, std::vector<std::string> >	directs;
+	void	set_directives(const std::string& s);
+	void	print_directives(void);
+	
+	utils::StrToStrVecMap	_directives;
 };
 
-struct ServerConfigs {
-	ServerConfigs(void);
-	ServerConfigs(utils::vecstr_iterator start, utils::vecstr_iterator end);
-	~ServerConfigs(void);
+struct ServerConfig {
+	ServerConfig(void);
+	ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterator end);
+	~ServerConfig(void);
 	
-	std::vector<LocationConfigs>						lconfigs;
-	std::map< std::string, std::vector<std::string> >	directs;
+	void	set_directives(const std::string& s);
+	void	print_directives(void);
+	
+	std::map< std::string, LocationConfig >	_lconfig;
+	utils::StrToStrVecMap					_directives;
+	utils::StrVec							_default_server_directives;
 };
 
 class Config {
@@ -43,22 +51,19 @@ class Config {
 		~Config(void);
 		Config(const Config &src);
 		Config	&operator=(const Config &rhs);
+		
+		void						print_config(void);
 
 	private:
 		void						save_config(const char* config_file);
-		// void						error_handling(void);
-		// void						check_server_context(void);
-		// void						check_directives(void);
-		// bool						is_valid_directives(std::string d);
 		void						init_default_directives(void);
 		void						parse_config(void);
 		
-
 		std::vector<std::string>	_conf; // trimmed
 		std::vector<std::string>	_default_server_directives;
 		std::vector<std::string>	_default_location_directives;
 		
-		std::vector<ServerConfigs>		_sconfigs;
+		std::vector<ServerConfig>		_sconfig;
 };
 
 #endif
