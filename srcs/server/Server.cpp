@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/11 16:11:35 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/13 14:54:20 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,9 @@ Server::Server(void)
 
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port, const char* config_file) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol, hostname, port), _config(config_file)
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port, const char* config_file) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol, hostname, port)//, _config(config_file)
 {
+	(void)config_file;
 	try
 	{
 		this->init_bind();
@@ -104,7 +105,8 @@ void	Server::insert_fd_to_fds(int fd, short event)
 void	Server::print_request_header(int fd)
 {
 	char buf[3000] = {0};
-	recv(fd, buf, 3000, 0);
+	if (recv(fd, buf, 3000, 0) < 0)
+		throw std::runtime_error("Recv");
 	std::cout << buf << std::endl;
 }
 
@@ -114,7 +116,7 @@ void	Server::accept_connection(void)
 	
 	if ((newfd = accept(this->_socketfd, this->_addrinfo->ai_addr, &this->_addrinfo->ai_addrlen)) < 0)
 		throw std::runtime_error("[Error] Server::accept_connection() accept");
-	fcntl(newfd, F_SETFL, O_NONBLOCK);
+	// fcntl(newfd, F_SETFL, O_NONBLOCK);
 	this->insert_fd_to_fds(newfd, POLLIN);
 }
 
@@ -145,12 +147,17 @@ void	Server::main_loop(void)
 		poll_ready = poll(this->_fds.data(), this->_fds.size(), 100);
 		if (poll_ready < 0)
 			throw std::runtime_error("[Error] Server::accept_connnection() poll");
+		if (poll_ready == 0)
+			continue ;
 		for (size_t i = 0; i < this->_fds.size(); i++)
 		{
 			if (!(this->_fds[i].revents))
 				continue;
 			if (this->_fds[i].fd == this->_socketfd && this->_fds[i].revents & POLLIN) // Listening socket
+			{
+				std::cout << "accepted connection" << std::endl;
 				this->accept_connection();
+			}
 			else if (this->_fds[i].revents & POLLIN)
 				this->handle_pollin(this->_fds[i]);
 			else if (this->_fds[i].revents & POLLOUT)

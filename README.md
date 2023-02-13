@@ -148,16 +148,26 @@ int poll(struct pollfd *ufds, unsigned int nfds, int timeout);
 ---
 # **Directives**
 ```
-server {
+server      {
 	listen	[port]		listening port
 	root	[root dir]	root directory for files to be served
 	
-	error_page	[error_code] [path to page]	display page if error
+	error_page	[error_code 404] [path to page]	display page if error
+	error_page	[405]			 [path to page]
+	
+	server_name	[domain]
+	
+	cgi [extension] [command]	for execve to execute
 	
 	location [path] {
-		limit_except	[methods]		limitting request methods (multiple)
-		index			[index file]	serve default page for path
-		redirect		[path]			redirect to path
+		limit_except			[methods] [methods] [methods]	limitting request methods (multiple)
+		index					[index file]	serve default page for path
+		redirect				[path]			redirect to path
+		client_max_body_size	[size]
+		autoindex 				[on/off]
+		root
 	}
 }
 ```
+
+
