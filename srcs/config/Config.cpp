@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   Config.cpp                                         :+:      :+:    :+:   */
+/*   config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 21:43:11 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/13 23:57:06 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,15 +22,15 @@ Config::Config(void)
 }
 
 Config::Config(const char* config_file)
-{	
-	this->init_default_directives();
+{
 	try
 	{
 		this->save_config(config_file);
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << ERROR("Config ") << LRED << e.what() << RESET << std::endl;;
+		std::cerr << ERROR("Confg::Config ") << LRED << e.what() << RESET << std::endl;;
+		std::exit(1);
 	}
 }
 
@@ -48,11 +48,6 @@ Config	&Config::operator=(const Config &rhs)
 /***********************************
  *  Functions
 ***********************************/
-
-void	Config::init_default_directives(void)
-{
-
-}
 
 void	Config::save_config(const char* config_file)
 {
@@ -79,7 +74,7 @@ void	Config::parse_config(void)
 	i = 0;
 	while (i < this->_conf.size())
 	{
-		if (utils::ft_split(this->_conf[i])[0] == "server")  
+		if (utils::ft_split(this->_conf[i])[0] == "server")
 		{
 			start = this->_conf.begin() + i + 1;
 			i++;
@@ -127,7 +122,7 @@ ServerConfig::ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterato
 	utils::StrVec::iterator	first;
 	utils::StrVec::iterator	last;
 	utils::StrVec			split;
-	
+
 	while (start < end)
 	{
 		split = utils::ft_split(*start);
@@ -154,7 +149,7 @@ void	ServerConfig::set_directives(const std::string& s)
 {
 	utils::StrVec	split;
 	std::string		key;
-	
+
 	split = utils::ft_split(s);
 	key = split[0];
 	if (!utils::is_valid_server_directives(key))
@@ -170,7 +165,7 @@ void	ServerConfig::print_directives(void)
 {
 	utils::StrToStrVecMap::iterator	it;
 	std::map< std::string, LocationConfig >::iterator	it2;
-	
+
 	it = this->_directives.begin();
 	while (it != this->_directives.end())
 	{
@@ -187,6 +182,11 @@ void	ServerConfig::print_directives(void)
 		it2->second.print_directives();
 		it2++;
 	}
+}
+
+utils::StrToStrVecPair	ServerConfig::get_directives(std::string key) const
+{
+	return (*(this->_directives.find(key)));
 }
 
 /***********************************
@@ -210,7 +210,7 @@ void	LocationConfig::set_directives(const std::string& s)
 {
 	utils::StrVec	split;
 	std::string		key;
-	
+
 	split = utils::ft_split(s);
 	key = split[0];
 	split.erase(split.begin());
@@ -220,7 +220,7 @@ void	LocationConfig::set_directives(const std::string& s)
 void	LocationConfig::print_directives(void)
 {
 	utils::StrToStrVecMap::iterator	it;
-	
+
 	it = this->_directives.begin();
 	while (it != this->_directives.end())
 	{
@@ -230,4 +230,9 @@ void	LocationConfig::print_directives(void)
 		std::cout << std::endl;
 		it++;
 	}
+}
+
+utils::StrToStrVecPair	LocationConfig::get_directives(std::string key) const
+{
+	return (*(this->_directives.find(key)));
 }
