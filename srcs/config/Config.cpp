@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   config.cpp                                         :+:      :+:    :+:   */
+/*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 23:57:06 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/14 19:36:49 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,12 +39,6 @@ Config::Config(const Config &src)
 	*this = src;
 }
 
-Config	&Config::operator=(const Config &rhs)
-{
-	(void)rhs;
-	return (*this);
-}
-
 /***********************************
  *  Functions
 ***********************************/
@@ -69,6 +63,7 @@ void	Config::parse_config(void)
 {
 	utils::StrVec::iterator	start;
 	utils::StrVec::iterator	end;
+	ServerConfig			tmp_sconfig;
 	size_t					i;
 
 	i = 0;
@@ -76,15 +71,17 @@ void	Config::parse_config(void)
 	{
 		if (utils::ft_split(this->_conf[i])[0] == "server")
 		{
-			start = this->_conf.begin() + i + 1;
-			i++;
+			start = this->_conf.begin() + i++ + 1;
 			while (i < this->_conf.size() && utils::ft_split(this->_conf[i])[0] != "server")
 				i++;
 			if (i == this->_conf.size())
 				end = this->_conf.end() - 1;
 			else
 				end = this->_conf.begin() + i - 1;
-			this->_sconfig.push_back(ServerConfig(start, end));
+			tmp_sconfig = ServerConfig(start, end);
+			// If server_name has not existed yet
+			if (this->_sconfig.find(tmp_sconfig.get_directives("server_name")[0]) == this->_sconfig.end())
+				this->_sconfig.insert(std::make_pair(tmp_sconfig.get_directives("server_name")[0], tmp_sconfig));
 		}
 		else
 			i++;
@@ -93,11 +90,19 @@ void	Config::parse_config(void)
 
 void	Config::print_config(void)
 {
-	for (size_t i = 0; i < this->_sconfig.size(); i++)
+	StrToSConfigMap::iterator	it;
+	
+	it = this->_sconfig.begin();
+	for (; it != this->_sconfig.end(); it++)
 	{
 		std::cout << BOLD << BLUE << "========== Server ==========" << RESET << std::endl;
-		this->_sconfig[i].print_directives();
+		it->second.print_directives();
 	}
+}
+
+const Config::StrToSConfigMap&	Config::get_config(void) const
+{
+	return (this->_sconfig);
 }
 
 /***********************************
@@ -139,16 +144,22 @@ ServerConfig::ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterato
 		}
 		else
 		{
+			// std::cout << *start << std::endl;
 			this->set_directives(*start);
 			start++;
 		}
 	}
+	if (!this->has_required_directives())
+		throw std::runtime_error("Missing required directives in server block");
+	if (this->_directives.find("server_name") == this->_directives.end())
+		this->_directives["server_name"] = utils::StrVec(1, "_");
 }
 
 void	ServerConfig::set_directives(const std::string& s)
 {
 	utils::StrVec	split;
 	std::string		key;
+	utils::StrVec	tmp;
 
 	split = utils::ft_split(s);
 	key = split[0];
@@ -156,14 +167,24 @@ void	ServerConfig::set_directives(const std::string& s)
 		throw std::runtime_error("\"" + key + "\" invalid server directive");
 	split.erase(split.begin());
 	if (this->_directives.find(key) == this->_directives.end())
-		this->_directives[key] = split;
-	else
+	{
+		// handle listen to hostname:port
+		if (key == "listen")
+		{
+			tmp.push_back(split[0].substr(0, split[0].find_first_of(':')));
+			tmp.push_back(split[0].substr(split[0].find_first_of(':') + 1, split[0].length()));
+			this->_directives[key] = tmp;
+		}
+		else
+			this->_directives[key] = split;
+	}
+	else // if key already exist insert vector at the end
 		this->_directives[key].insert(this->_directives[key].end(), split.begin(), split.end());
 }
 
 void	ServerConfig::print_directives(void)
 {
-	utils::StrToStrVecMap::iterator	it;
+	utils::StrToStrVecMap::iterator						it;
 	std::map< std::string, LocationConfig >::iterator	it2;
 
 	it = this->_directives.begin();
@@ -184,9 +205,16 @@ void	ServerConfig::print_directives(void)
 	}
 }
 
-utils::StrToStrVecPair	ServerConfig::get_directives(std::string key) const
+utils::StrVec	ServerConfig::get_directives(std::string key) const
 {
-	return (*(this->_directives.find(key)));
+	return (this->_directives.find(key)->second);
+}
+
+bool	ServerConfig::has_required_directives(void) const
+{
+	if (this->_directives.find("listen") == this->_directives.end() || this->_directives.find("root") == this->_directives.end())
+		return (false);
+	return (true);
 }
 
 /***********************************
@@ -213,6 +241,8 @@ void	LocationConfig::set_directives(const std::string& s)
 
 	split = utils::ft_split(s);
 	key = split[0];
+	if (!utils::is_valid_location_directives(key))
+		throw std::runtime_error("\"" + key + "\" invalid location directive");
 	split.erase(split.begin());
 	this->_directives[key] = split;
 }
@@ -232,7 +262,7 @@ void	LocationConfig::print_directives(void)
 	}
 }
 
-utils::StrToStrVecPair	LocationConfig::get_directives(std::string key) const
+utils::StrVec	LocationConfig::get_directives(std::string key) const
 {
-	return (*(this->_directives.find(key)));
+	return (this->_directives.find(key)->second);
 }

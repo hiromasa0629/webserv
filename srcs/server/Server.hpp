@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 14:54:31 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/14 16:41:11 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@ class Server : public Socket {
 	public:
 		typedef struct pollfd	pollfd_t;
 	
-		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port, const char* config_file);
+		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config);
 		~Server(void);
 		Server(const Server &src);
 		Server	&operator=(const Server &rhs);
@@ -34,7 +34,7 @@ class Server : public Socket {
 		void	init_listen(void);
 		void	insert_fd_to_fds(int fd, short event);
 		
-		void	accept_connection(void);
+		void	accept_connection(int fd);
 		void	handle_pollin(const pollfd_t& pollfd);
 		void	handle_pollout(const pollfd_t& pollfd);
 		
@@ -45,7 +45,6 @@ class Server : public Socket {
 
 		std::vector<pollfd_t>		_fds;
 		static const char*			_example_res;
-		Config						_config;
 };
 
 bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs);

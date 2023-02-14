@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 14:54:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/14 19:33:00 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,9 +23,9 @@ Server::Server(void)
 
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const char* hostname, const char* port, const char* config_file) : Socket(ai_flags, ai_family, ai_socktype, ai_protocol, hostname, port)//, _config(config_file)
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config) 
+	: Socket(ai_flags, ai_family, ai_socktype, ai_protocol, config)
 {
-	(void)config_file;
 	try
 	{
 		this->init_bind();
@@ -78,17 +78,28 @@ Server::~Server(void)
 
 void	Server::init_bind(void)
 {
-	// close(3);
-	if (bind(this->_socketfd, this->_addrinfo->ai_addr, this->_addrinfo->ai_addrlen) < 0)
-		throw std::runtime_error("[Error] Server::init_bind()");
-	std::cout << INFO("Server::init_bind") << std::endl;
+	SocketFdsMap::iterator	it;
+	
+	it = this->_socketfds.begin();
+	for (size_t i = 0; it != this->_socketfds.end(); it++, i++)
+	{
+		if (bind(it->first, this->_addrinfos[i]->ai_addr, this->_addrinfos[i]->ai_addrlen) < 0)
+			throw std::runtime_error("[Error] Server::init_bind()");
+		std::cout << INFO("Server::init_bind ") << this->get_ip(this->_addrinfos[i]) << " " << this->get_port(this->_addrinfos[i]) << std::endl;
+	}
 }
 
 void	Server::init_listen(void)
 {
-	if (listen(this->_socketfd, SOMAXCONN))
-		throw std::runtime_error("[Error] Server::init_listen()");
-	std::cout << INFO("Server::init_listen") << "Listening..." << std::endl;
+	SocketFdsMap::iterator	it;
+	
+	it = this->_socketfds.begin();
+	for (; it != this->_socketfds.end(); it++)
+	{
+		if (listen(it->first, SOMAXCONN))
+			throw std::runtime_error("[Error] Server::init_listen()");
+		std::cout << INFO("Server::init_listen") << "Listening..." << this->get_port(it->second.first) << std::endl;
+	}
 }
 
 void	Server::insert_fd_to_fds(int fd, short event)
@@ -110,13 +121,15 @@ void	Server::print_request_header(int fd)
 	std::cout << buf << std::endl;
 }
 
-void	Server::accept_connection(void)
+void	Server::accept_connection(int fd)
 {
-	int	newfd;
+	int				newfd;
+	addrinfo_t*		addr;
 	
-	if ((newfd = accept(this->_socketfd, this->_addrinfo->ai_addr, &this->_addrinfo->ai_addrlen)) < 0)
+	addr = this->_socketfds[fd].first;
+	if ((newfd = accept(fd, addr->ai_addr, &addr->ai_addrlen)) < 0)
 		throw std::runtime_error("[Error] Server::accept_connection() accept");
-	// fcntl(newfd, F_SETFL, O_NONBLOCK);
+	fcntl(newfd, F_SETFL, O_NONBLOCK);
 	this->insert_fd_to_fds(newfd, POLLIN);
 }
 
@@ -140,8 +153,11 @@ void	Server::handle_pollout(const pollfd_t& pfd)
 void	Server::main_loop(void)
 {
 	int poll_ready;
-	
-	this->insert_fd_to_fds(this->_socketfd, POLLIN);
+	SocketFdsMap::iterator	it;
+
+	it = this->_socketfds.begin();
+	for (; it != this->_socketfds.end(); it++)
+		this->insert_fd_to_fds(it->first, POLLIN);
 	while (1)
 	{
 		poll_ready = poll(this->_fds.data(), this->_fds.size(), 100);
@@ -153,11 +169,8 @@ void	Server::main_loop(void)
 		{
 			if (!(this->_fds[i].revents))
 				continue;
-			if (this->_fds[i].fd == this->_socketfd && this->_fds[i].revents & POLLIN) // Listening socket
-			{
-				std::cout << "accepted connection" << std::endl;
-				this->accept_connection();
-			}
+			if (is_socketfd(this->_fds[i].fd) && this->_fds[i].revents & POLLIN) // is socket fds
+				this->accept_connection(this->_fds[i].fd);
 			else if (this->_fds[i].revents & POLLIN)
 				this->handle_pollin(this->_fds[i]);
 			else if (this->_fds[i].revents & POLLOUT)

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/13 23:49:12 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/14 18:33:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,6 @@
 # include <vector>
 # include <map>
 # include <sstream>
-
 
 namespace utils {
 
@@ -40,9 +39,9 @@ const std::string	default_location_directives[] = {"redirect",
 														"client_max_body_size",
 														"cgi"};
 
-typedef std::vector<std::string>			StrVec;
-typedef std::map< std::string, StrVec >		StrToStrVecMap;
-typedef std::pair< std::string, StrVec >	StrToStrVecPair;
+typedef std::vector<std::string>				StrVec;
+typedef std::map< std::string, StrVec >			StrToStrVecMap;
+typedef std::pair< std::string, StrVec >		StrToStrVecPair;
 
 bool									is_whitespaces(char c);
 bool									is_empty_string(const std::string& s);
