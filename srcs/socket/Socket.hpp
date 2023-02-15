@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:45 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/14 18:12:51 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 16:31:00 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,37 +27,36 @@
 # include <vector>
 # include <iterator>
 # include "Config.hpp"
+# include "Logger.hpp"
 
 class Socket {
 	public:
 		typedef struct addrinfo									addrinfo_t;
 		typedef struct sockaddr									sockaddr_t;
-		typedef struct std::pair< addrinfo_t *, std::string >	AddrToStrPair;
-		typedef struct std::map < int, AddrToStrPair >			SocketFdsMap;
 
-		Socket(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config);
+		Socket(void);
+		Socket(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const ServerConfig& sconfig);
 		~Socket(void);
 		Socket(const Socket &src);
 		Socket	&operator=(const Socket &rhs);
 
-		// Getters
-		// addrinfo_t*	get_addrinfo(void) const;
-
+		int				get_socketfd(void) const;
+		std::string		get_ip(void) const;
+		std::string		get_port(void) const;
+		addrinfo_t*		get_addrinfo(void) const;
+		
 	private:
 		void		init_addrinfo(const addrinfo_t& hint);
 		void		init_socket(void);
 
-	protected:
-		Socket(void);
-		
-		std::string		get_ip(addrinfo_t *a) const;
-		unsigned short	get_port(addrinfo_t *a) const;
-		bool			is_socketfd(int fd);
-		
 
-		std::vector<addrinfo_t *>		_addrinfos;
-		Config							_config;
-		SocketFdsMap					_socketfds;	
+		addrinfo_t*						_addrinfo;
+		int								_socketfd;
+		ServerConfig					_config;
+		Logger							_logger;
 };
+
+std::string			operator+(const char* s, const Socket& socket);
+std::ostream&		operator<<(std::ostream& o, const Socket& socket);
 
 #endif

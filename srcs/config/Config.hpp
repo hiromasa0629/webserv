@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:07 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/14 19:04:29 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 11:59:20 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,7 +70,7 @@ class Config {
 		void						parse_config(void);
 
 		std::vector<std::string>				_conf; // trimmed
-		std::map< std::string, ServerConfig >	_sconfig;
+		StrToSConfigMap							_sconfig;
 };
 
 #endif

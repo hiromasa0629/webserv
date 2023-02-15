@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/14 16:41:11 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 19:00:40 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,16 @@
 # include <iostream>
 # include "Socket.hpp"
 # include "Config.hpp"
+# include "Logger.hpp"
+# include <sys/select.h>
 
-class Server : public Socket {
+# define TIMEOUT_SEC	0
+# define TIMEOUT_USEC	100000
+
+class Server {
 	public:
 		typedef struct pollfd	pollfd_t;
+		typedef struct timeval	timeval_t;
 	
 		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config);
 		~Server(void);
@@ -34,17 +40,28 @@ class Server : public Socket {
 		void	init_listen(void);
 		void	insert_fd_to_fds(int fd, short event);
 		
+		void	main_loop(void);
 		void	accept_connection(int fd);
 		void	handle_pollin(const pollfd_t& pollfd);
 		void	handle_pollout(const pollfd_t& pollfd);
 		
-		void	print_request_header(int fd);
+		void	main_loop_select(void);
+		void	accept_connection_select(int fd, int* maxfd);
+		void	handle_pollin_select(int fd);
+		void	handle_pollout_select(int fd);
 		
-		void	main_loop(void);
+		void	print_request_header(int fd);
+		bool	is_socketfd(int fd) const;
+		
+		std::vector<Socket>::iterator	get_socket_from_fd(int fd);
 		
 
 		std::vector<pollfd_t>		_fds;
+		std::vector<Socket>			_sockets;
+		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
 		static const char*			_example_res;
+		timeval_t					_timeval;
+		Logger						_logger;
 };
 
 bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs);

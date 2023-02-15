@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/14 19:36:49 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 15:44:36 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,7 +29,7 @@ Config::Config(const char* config_file)
 	}
 	catch(const std::exception& e)
 	{
-		std::cerr << ERROR("Confg::Config ") << LRED << e.what() << RESET << std::endl;;
+		std::cerr << ERROR("Confg::Config ") << LRED << e.what() << RESET << std::endl;
 		std::exit(1);
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/07 20:19:09 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/11 16:52:15 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 16:33:14 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 # define REVERSE     "\033[7m"
 # define HIDDEN      "\033[8m"
 
-# define RESET        		 "\033[0m"
+# define RESET			"\033[0m"
 # define RESET_BOLD        "\033[21m"
 # define RESET_DIM         "\033[22m"
 # define RESET_UNDERLINED  "\033[24m"
