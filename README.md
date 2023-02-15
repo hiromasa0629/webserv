@@ -3,6 +3,7 @@
 - C++ Network Programming Part 1: Sockets - https://www.youtube.com/watch?v=gntyAFoZp-E
 - Man pages - https://beej.us/guide/bgnet/html/#bindman
 - epoll() (Not available on Mac, alternatives - kqueue) - https://web.archive.org/web/20120504033548/https://banu.com/blog/2/how-to-use-epoll-a-complete-example-in-c/
+- chunked request - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
 # **Server side**
 - Step 1: Load up address structs `getaddrinfo()`
 - Step 2: Create a socket `socket()`
@@ -169,5 +170,18 @@ server      {
 	}
 }
 ```
+---
+# **Example of chunked request**
+```
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Transfer-Encoding: chunked
 
+7\r\n
+Mozilla\r\n
+11\r\n
+Developer Network\r\n
+0\r\n
+\r\n
+```
 

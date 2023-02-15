@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 19:00:40 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 21:12:52 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,8 +50,8 @@ class Server {
 		void	handle_pollin_select(int fd);
 		void	handle_pollout_select(int fd);
 		
-		void	print_request_header(int fd);
-		bool	is_socketfd(int fd) const;
+		std::vector<char>	read_request_header(int fd);
+		bool				is_socketfd(int fd) const;
 		
 		std::vector<Socket>::iterator	get_socket_from_fd(int fd);
 		

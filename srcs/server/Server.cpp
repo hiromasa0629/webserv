@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 19:14:53 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/15 21:22:58 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,12 +128,13 @@ void	Server::insert_fd_to_fds(int fd, short event)
 	
 }
 
-void	Server::print_request_header(int fd)
+std::vector<char>	Server::read_request_header(int fd)
 {
-	char buf[3000] = {0};
-	if (recv(fd, buf, 3000, 0) < 0)
+	std::vector<char>	buf(1024);
+	if (recv(fd, buf.data(), buf.size(), 0) < 0)
 		throw std::runtime_error("recv()");
-	std::cout << buf << std::endl;
+	std::cout << buf.data() << std::endl;
+	return (buf);
 }
 
 void	Server::accept_connection(int fd)
@@ -153,7 +154,7 @@ void	Server::accept_connection(int fd)
 void	Server::handle_pollin(const pollfd_t& pfd)
 {
 	this->_logger.info<std::string>("POLLIN");
-	print_request_header(pfd.fd);
+	read_request_header(pfd.fd);
 	this->insert_fd_to_fds(pfd.fd, POLLOUT);
 	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
 	
@@ -214,7 +215,10 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 void	Server::handle_pollin_select(int fd)
 {
 	this->_logger.info<std::string>("POLLIN (select)");
-	print_request_header(fd);
+	std::vector<char>	req(read_request_header(fd));
+	
+	
+	
 	FD_CLR(fd, &this->_fd_sets.first);
 	FD_SET(fd, &this->_fd_sets.second);
 }
