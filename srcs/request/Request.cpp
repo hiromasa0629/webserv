@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 13:53:33 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 17:50:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,8 +16,10 @@ Request::Request(void) {}
 
 Request::~Request(void) {}
 
-Request::Request(const utils::CharVec& req) : _req(req), _is_complete(false)
+Request::Request(const utils::CharVec& req) : _req(req), _is_complete(false), _method(GET)
 {
+	(void)_method;
+
 	this->check_full_request_header();
 	if (!this->_is_complete)
 		return ;
@@ -27,6 +29,32 @@ Request::Request(const utils::CharVec& req) : _req(req), _is_complete(false)
 bool	Request::get_is_complete(void) const
 {
 	return (this->_is_complete);
+}
+
+void	Request::print_request_header(void) const
+{
+	for (size_t i = 0; i < this->_header.size(); i++)
+	{
+		utils::CharVec::const_iterator	it = this->_header[i].begin();
+		for (;it != this->_header[i].end(); it++)
+			std::cout << *it;
+	}
+	for (size_t i = 0; i < this->_body.size(); i++)
+	{
+		utils::CharVec::const_iterator	it = this->_body[i].begin();
+		for (;it != this->_body[i].end(); it++)
+			std::cout << *it;
+	}
+	std::cout << "end" << std::endl;
+}
+
+void	Request::append(const utils::CharVec& req)
+{
+	this->_req.insert(this->_req.end(), req.begin(), req.end());
+	this->check_full_request_header();
+	if (!this->_is_complete)
+		return ;
+	this->extract_header_n_body();
 }
 
 void	Request::check_full_request_header(void)
@@ -84,4 +112,3 @@ std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator
 	}
 	return (res);
 }
-

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 21:12:52 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 17:12:07 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,13 @@
 # include "Config.hpp"
 # include "Logger.hpp"
 # include <sys/select.h>
+# include "Request.hpp"
 
 # define TIMEOUT_SEC	0
 # define TIMEOUT_USEC	100000
+# define BUFFER_SIZE	1024
+
+class Request;
 
 class Server {
 	public:
@@ -55,10 +59,10 @@ class Server {
 		
 		std::vector<Socket>::iterator	get_socket_from_fd(int fd);
 		
-
-		std::vector<pollfd_t>		_fds;
+		std::vector<pollfd_t>		_fds; // poll()
 		std::vector<Socket>			_sockets;
 		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
+		std::map<int, Request>		_fd_requests;
 		static const char*			_example_res;
 		timeval_t					_timeval;
 		Logger						_logger;

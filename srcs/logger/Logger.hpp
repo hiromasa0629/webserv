@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 15:48:09 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 16:54:34 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 16:19:47 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,8 @@ class Logger{
 		}
 
 		bool isDefaultStream() const;
+		
+		void listening(void) const;
 
 	private:
 		std::string		_log_path;

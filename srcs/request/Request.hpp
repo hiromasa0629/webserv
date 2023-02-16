@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 13:50:04 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 17:47:25 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,8 @@ class Request {
 		Request(const utils::CharVec& req);
 		
 		bool	get_is_complete(void) const;
+		void	print_request_header(void) const;
+		void	append(const utils::CharVec& req);
 		
 	private:
 		void						check_full_request_header(void);

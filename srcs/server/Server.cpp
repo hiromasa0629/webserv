@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 14:00:57 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 17:54:27 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,11 +130,23 @@ void	Server::insert_fd_to_fds(int fd, short event)
 
 std::vector<char>	Server::read_request_header(int fd)
 {
-	std::vector<char>	buf(1024);
-	if (recv(fd, buf.data(), buf.size(), 0) < 0)
-		throw std::runtime_error("recv()");
-	std::cout << buf.data() << std::endl;
-	return (buf);
+	std::vector<char>	buf(BUFFER_SIZE);
+	std::vector<char>	res;
+	int					ret;
+	
+	ret = recv(fd, buf.data(), BUFFER_SIZE, 0);
+	while (ret > 0)
+	{
+        res.insert(res.end(), buf.begin(), buf.begin() + ret);
+		buf.clear();
+		buf.resize(BUFFER_SIZE);
+		if (ret < BUFFER_SIZE)
+			break ;
+		ret = recv(fd, buf.data(), BUFFER_SIZE, 0);
+	}
+	if (ret == -1)
+		throw std::runtime_error("Recv()");
+	return (res);
 }
 
 void	Server::accept_connection(int fd)
@@ -208,15 +220,30 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 		throw std::runtime_error("Server::accept_connection_select() accept");
 	this->_logger.info<std::string>("Server::accept_connection_select() accepted from " + *it);
 	fcntl(newfd, F_SETFL, O_NONBLOCK);
-	*maxfd = newfd;
+	if (*maxfd < newfd)
+		*maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);
 }
 
 void	Server::handle_pollin_select(int fd)
 {
 	this->_logger.info<std::string>("POLLIN (select)");
-	std::vector<char>	req(read_request_header(fd));
 	
+	Request								req;
+	std::map<int, Request>::iterator	it;
+	
+	if ((it = this->_fd_requests.find(fd)) != this->_fd_requests.end())
+	{
+		it->second.append(read_request_header(fd));
+		req = it->second;
+	}
+	else
+	{
+		req = Request(read_request_header(fd));
+		this->_fd_requests.insert(std::make_pair(fd, req));
+	}
+	if (!req.get_is_complete())
+		return ;
 	FD_CLR(fd, &this->_fd_sets.first);
 	FD_SET(fd, &this->_fd_sets.second);
 }
@@ -250,6 +277,7 @@ void	Server::main_loop_select(void)
 	}
 	while (1)
 	{
+		// this->_logger.listening();
 		read_fds = this->_fd_sets.first;
 		write_fds = this->_fd_sets.second;
 		select_ready = select(maxfd + 1, &read_fds, &write_fds, NULL, &this->_timeval);
