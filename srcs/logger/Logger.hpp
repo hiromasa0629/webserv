@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 15:48:09 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 16:54:34 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 20:30:50 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,8 @@
 class Logger{
 	public:
 		explicit Logger(std::ostream *default_stream = &std::cout);
+		Logger &operator=(const Logger &ref);
+		Logger(const Logger &ref);
 		~Logger();
 		Logger(const std::string &path, std::ostream *default_stream = &std::cout);
 
@@ -49,6 +51,8 @@ class Logger{
 		}
 
 		bool isDefaultStream() const;
+		
+		void listening(void) const;
 
 	private:
 		std::string		_log_path;
@@ -56,8 +60,6 @@ class Logger{
 		bool			_ext;
 		bool			_is_default;
 
-		Logger(const Logger &ref);
-		Logger &operator=(const Logger &ref);
 };
 
 #endif

@@ -3,6 +3,7 @@
 - C++ Network Programming Part 1: Sockets - https://www.youtube.com/watch?v=gntyAFoZp-E
 - Man pages - https://beej.us/guide/bgnet/html/#bindman
 - epoll() (Not available on Mac, alternatives - kqueue) - https://web.archive.org/web/20120504033548/https://banu.com/blog/2/how-to-use-epoll-a-complete-example-in-c/
+- chunked request - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Transfer-Encoding
 # **Server side**
 - Step 1: Load up address structs `getaddrinfo()`
 - Step 2: Create a socket `socket()`
@@ -145,8 +146,7 @@ struct pollfd {
 // timeout	= in ms
 int poll(struct pollfd *ufds, unsigned int nfds, int timeout);
 ```
----
-# **Directives**
+# **Server configuration**
 ```
 server      {
 	listen	[port]		listening port
@@ -169,5 +169,36 @@ server      {
 	}
 }
 ```
-
-
+# **Requests examples**
+**CRLF** - Carriage return, line feed (\r\n) 
+<!-- - **Chunked**
+```
+HTTP/1.1 200 OK\r\n
+Content-Type: text/plain\r\n
+Transfer-Encoding: chunked\r\n
+\r\n
+7\r\n
+Mozilla\r\n	
+11\r\n
+Developer Network\r\n
+0\r\n
+\r\n
+```  -->
+- **GET**
+```
+GET /index.html HTTP/1.1\r\n
+Host: www.example.com\r\n
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36\r\n
+Accept-Language: en-US,en;q=0.9\r\n
+\r\n
+```
+- **POST**
+```
+POST /api/login HTTP/1.1\r\n
+Host: www.example.com\r\n
+Content-Type: application/x-www-form-urlencoded\r\n
+Content-Length: 23\r\n
+\r\n
+username=johndoe&password=secret\r\n
+\r\n
+```

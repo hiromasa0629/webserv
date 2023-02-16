@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 15:50:14 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 17:27:50 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 16:36:12 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,4 +69,28 @@ Logger::Logger(const std::string &path, std::ostream *default_stream) : _log_pat
 
 bool Logger::isDefaultStream() const {
 	return this->_is_default;
+}
+
+void	Logger::listening(void) const
+{
+	static int i = 0;
+	
+	if (i < 5)
+		std::cout << BOLD << BLUE << "\r[Info] " << RESET << "\033[?25lWaiting for connection.     ";
+	else if (i < 10)
+		std::cout << BOLD << BLUE << "\r[Info] " << RESET << "Waiting for connection..    ";
+	else if (i < 15)
+		std::cout << BOLD << BLUE << "\r[Info] " << RESET << "Waiting for connection...   ";
+	else if (i < 20)
+		std::cout << BOLD << BLUE << "\r[Info] " << RESET << "Waiting for connection....  ";
+	else if (i < 25)
+		std::cout << BOLD << BLUE << "\r[Info] " << RESET << "Waiting for connection..... ";
+	else if (i < 30)
+		std::cout << BOLD << BLUE << "\r[Info] " << RESET << "Waiting for connection......";
+	std::fflush(stdout);
+	i++;
+	if (i == 30)
+		i = 0;
+	std::cout << "\033[?25h";
+	std::fflush(stdout);
 }

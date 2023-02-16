@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 16:01:33 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 13:22:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,17 +23,12 @@ const char	ws[] = " \t\n\v\f\r";
 const std::string	default_server_directives[] = {"listen",
 													"root",
 													"error_page",
-													"location",
-													"limit_except",
 													"index",
 													"server_name",
-													"client_max_body_size",
-													"cgi",
-													"upload_store"};
+													"cgi"};
 
-const std::string	default_location_directives[] = {"redirect",
+const std::string	default_location_directives[] = {"return",
 														"root",
-														"error_page",
 														"autoindex",
 														"limit_except",
 														"index",
@@ -41,6 +36,7 @@ const std::string	default_location_directives[] = {"redirect",
 														"cgi",
 														"upload_store"};
 
+typedef std::vector<char>						CharVec;
 typedef std::vector<std::string>				StrVec;
 typedef std::map< std::string, StrVec >			StrToStrVecMap;
 typedef std::pair< std::string, StrVec >		StrToStrVecPair;

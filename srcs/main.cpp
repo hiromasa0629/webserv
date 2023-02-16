@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 01:19:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/14 19:20:40 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 16:17:56 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,13 +20,11 @@ int	main(int ac, char** argv)
 		std::cout << "Invalid arguments count" << std::endl;
 		return (0);
 	}
-
 	Config	config(argv[1]);
 
 	config.print_config();
 
 	Server server(AI_PASSIVE, AF_INET, SOCK_STREAM, 0, config);
 	server.run();
-
 	return (0);
 }
