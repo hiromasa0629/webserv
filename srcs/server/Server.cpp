@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 21:22:58 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 14:00:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -217,8 +217,6 @@ void	Server::handle_pollin_select(int fd)
 	this->_logger.info<std::string>("POLLIN (select)");
 	std::vector<char>	req(read_request_header(fd));
 	
-	
-	
 	FD_CLR(fd, &this->_fd_sets.first);
 	FD_SET(fd, &this->_fd_sets.second);
 }
@@ -227,7 +225,8 @@ void	Server::handle_pollout_select(int fd)
 {
 	this->_logger.info<std::string>("POLLOUT (select)");
 	send(fd, _example_res, std::strlen(_example_res), 0);
-	close(fd);
+	if (close(fd) != 0)
+		throw std::runtime_error("Pollout select close");
 	FD_CLR(fd, &this->_fd_sets.second);
 }
 
