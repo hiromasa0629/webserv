@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 17:47:25 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 20:26:58 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,13 +14,6 @@
 # define REQUEST_H
 # include "Server.hpp"
 # include "utils.hpp"
-
-enum Methods {
-	GET,
-	POST,
-	PUT,
-	DELETE
-};
 
 class Request {
 	public:
@@ -37,14 +30,17 @@ class Request {
 		bool						is_crlf(utils::CharVec::iterator start, utils::CharVec::iterator end) const;
 		void						extract_header_n_body(void);
 		std::vector<utils::CharVec>	save_header_n_body(utils::CharVec::iterator start, utils::CharVec::iterator end);
+		void						extract_header_info(void);
 		
 		utils::CharVec				_req;
 		std::vector<utils::CharVec>	_header;
 		std::vector<utils::CharVec>	_body;
 		bool						_is_complete;
-		Methods						_method;
-		std::string					_path;
+		std::string					_method;
+		std::string					_uri;
 		std::string					_host;
+		
+		Logger						_logger;
 };
 
 

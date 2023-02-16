@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 17:54:27 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/16 21:31:11 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -244,6 +244,7 @@ void	Server::handle_pollin_select(int fd)
 	}
 	if (!req.get_is_complete())
 		return ;
+	req.print_request_header();
 	FD_CLR(fd, &this->_fd_sets.first);
 	FD_SET(fd, &this->_fd_sets.second);
 }
@@ -255,6 +256,7 @@ void	Server::handle_pollout_select(int fd)
 	if (close(fd) != 0)
 		throw std::runtime_error("Pollout select close");
 	FD_CLR(fd, &this->_fd_sets.second);
+	this->_fd_requests.erase(fd);
 }
 
 void	Server::main_loop_select(void)
