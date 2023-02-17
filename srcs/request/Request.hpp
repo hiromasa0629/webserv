@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 20:26:58 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/17 18:42:54 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,11 @@ class Request {
 		void	print_request_header(void) const;
 		void	append(const utils::CharVec& req);
 		
+		std::string	get_method(void) const;
+		std::string	get_uri(void) const;
+		std::string	get_host(void) const;
+		std::string	get_port(void) const;
+		
 	private:
 		void						check_full_request_header(void);
 		bool						is_crlf(utils::CharVec::iterator start, utils::CharVec::iterator end) const;
@@ -39,7 +44,7 @@ class Request {
 		std::string					_method;
 		std::string					_uri;
 		std::string					_host;
-		
+		std::string					_port;
 		Logger						_logger;
 };
 

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 21:41:51 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/17 18:44:14 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,7 @@ void	Request::print_request_header(void) const
 	this->_logger.debug("Method: " + this->_method);
 	this->_logger.debug("URI: " + this->_uri);
 	this->_logger.debug("Host: " + this->_host);
+	this->_logger.debug("Port: " + this->_port);
 	this->_logger.debug(" --------------- ");
 	for (size_t i = 0; i < this->_header.size(); i++)
 	{
@@ -139,6 +140,31 @@ void	Request::extract_header_info(void)
 	{
 		split = utils::ft_split(it->data());
 		if (split[0] == "Host:")
-			this->_host = split[1];
+		{
+			this->_host = split[1].substr(0, split[1].find_first_of(':'));
+			this->_port = split[1].substr(split[1].find_first_of(':'), split[1].size());
+		}
 	}
 }
+
+std::string	Request::get_method(void) const
+{
+	return (this->_method);
+}
+
+std::string	Request::get_uri(void) const
+{
+	return (this->_uri);
+}
+
+std::string	Request::get_host(void) const
+{
+	return (this->_host);
+}
+
+std::string	Request::get_port(void) const
+{
+	return (this->_port);
+}
+
+

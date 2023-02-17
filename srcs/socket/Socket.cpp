@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 15:26:44 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/17 17:31:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,7 +114,7 @@ void	Socket::init_addrinfo(const addrinfo_t& hint)
 	
 	host = this->_config.get_directives("listen")[0];
 	port = this->_config.get_directives("listen")[1];
-	gai = getaddrinfo(NULL, port.c_str(), &hint, &(this->_addrinfo));
+	gai = getaddrinfo(host.c_str(), port.c_str(), &hint, &(this->_addrinfo));
 	if (gai != 0)
 		throw std::runtime_error(host + ":" + port + " " + gai_strerror(gai));
 	this->_logger.info<std::string>("Socket::init_addrinfo " + *this);
@@ -126,7 +126,7 @@ void	Socket::init_socket(void)
 
 	this->_socketfd = socket(this->_addrinfo->ai_family, this->_addrinfo->ai_socktype, this->_addrinfo->ai_protocol);
 	if (this->_socketfd < 0)
-		throw std::runtime_error("[Error] Socket::init_socket()");
+		throw std::runtime_error("Socket::init_socket()");
 	setsockopt(this->_socketfd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(tmp));
 	this->_logger.info<std::string>("Socket::init_socket " + *this);
 }

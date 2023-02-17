@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 21:31:11 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/17 17:00:17 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,8 +32,8 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 	this->_timeval.tv_sec = TIMEOUT_SEC;
 	this->_timeval.tv_usec = TIMEOUT_USEC;
 
-	it = config.get_config().begin();
-	for (size_t i = 0; it != config.get_config().end(); it++, i++)
+	it = config.get_sconfig().begin();
+	for (size_t i = 0; it != config.get_sconfig().end(); it++, i++)
 	{
 		tmp = Socket(ai_flags, ai_family, ai_socktype, ai_protocol, it->second);
 		this->_sockets.push_back(tmp);

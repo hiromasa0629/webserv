@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:07 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 11:59:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/17 18:51:49 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,8 @@ class LocationConfig {
 
 class ServerConfig {
 	public:
+		typedef std::map< std::string, LocationConfig >	StrToLConfigMap;
+		
 		ServerConfig(void);
 		ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterator end);
 		~ServerConfig(void);
@@ -43,7 +45,8 @@ class ServerConfig {
 		void	set_directives(const std::string& s);
 		void	print_directives(void);
 
-		utils::StrVec	get_directives(std::string key) const;
+		utils::StrVec			get_directives(std::string key) const;
+		const StrToLConfigMap&	get_lconfig(void) const;
 
 	private:
 		bool					has_required_directives(void) const;
@@ -55,7 +58,6 @@ class ServerConfig {
 class Config {
 	public:
 		typedef std::map< std::string, ServerConfig >	StrToSConfigMap;
-		typedef std::map< std::string, LocationConfig >	StrToLConfigMap;
 	
 		Config(void);
 		Config(const char* config_file);
@@ -63,7 +65,8 @@ class Config {
 		Config(const Config &src);
 
 		void								print_config(void);
-		const StrToSConfigMap&				get_config(void) const;
+		const StrToSConfigMap&				get_sconfig(void) const;
+		StrToSConfigMap::const_iterator		find_sconfig_by_host_port(const std::string& newhost, const std::string& newport) const;
 
 	private:
 		void						save_config(const char* config_file);
