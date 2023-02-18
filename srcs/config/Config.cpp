@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/17 18:53:30 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/18 18:26:02 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,6 +133,44 @@ Config::~Config(void)
 }
 
 /***********************************
+ *  BlockConfig
+***********************************/
+
+BlockConfig::BlockConfig(void) {}
+
+BlockConfig::~BlockConfig(void) {}
+
+void	BlockConfig::print_directives(void)
+{
+	utils::StrToStrVecMap::iterator	it;
+
+	it = this->_directives.begin();
+	while (it != this->_directives.end())
+	{
+		std::cout << "\t" << CYAN << it->first << " " << RESET;
+		for (size_t i = 0; i < it->second.size(); i++)
+			std::cout << (it->second)[i] << " ";
+		std::cout << std::endl;
+		it++;
+	}
+}
+
+utils::StrVec	BlockConfig::get_directives(std::string key) const
+{
+	return (this->_directives.find(key)->second);
+}
+
+void	BlockConfig::set_directives(const std::string& s)
+{
+	(void)s;
+}
+
+ConfigType	BlockConfig::get_type(void) const
+{
+	return (this->_type);
+}
+
+/***********************************
  *  ServerConfigs
 ***********************************/
 
@@ -171,6 +209,7 @@ ServerConfig::ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterato
 		throw std::runtime_error("Missing required directives in server block");
 	if (this->_directives.find("server_name") == this->_directives.end())
 		this->_directives["server_name"] = utils::StrVec(1, "_");
+	this->_type = SERVER;
 }
 
 void	ServerConfig::set_directives(const std::string& s)
@@ -223,11 +262,6 @@ void	ServerConfig::print_directives(void)
 	}
 }
 
-utils::StrVec	ServerConfig::get_directives(std::string key) const
-{
-	return (this->_directives.find(key)->second);
-}
-
 bool	ServerConfig::has_required_directives(void) const
 {
 	if (this->_directives.find("listen") == this->_directives.end() || this->_directives.find("root") == this->_directives.end())
@@ -250,6 +284,7 @@ LocationConfig::~LocationConfig(void) {}
 
 LocationConfig::LocationConfig(utils::StrVec::iterator start, utils::StrVec::iterator end)
 {
+	this->_type = LOCATION;
 	while (start < end)
 	{
 		this->set_directives(*start);
@@ -268,24 +303,4 @@ void	LocationConfig::set_directives(const std::string& s)
 		throw std::runtime_error("\"" + key + "\" invalid location directive");
 	split.erase(split.begin());
 	this->_directives[key] = split;
-}
-
-void	LocationConfig::print_directives(void)
-{
-	utils::StrToStrVecMap::iterator	it;
-
-	it = this->_directives.begin();
-	while (it != this->_directives.end())
-	{
-		std::cout << "\t" << CYAN << it->first << " " << RESET;
-		for (size_t i = 0; i < it->second.size(); i++)
-			std::cout << (it->second)[i] << " ";
-		std::cout << std::endl;
-		it++;
-	}
-}
-
-utils::StrVec	LocationConfig::get_directives(std::string key) const
-{
-	return (this->_directives.find(key)->second);
 }

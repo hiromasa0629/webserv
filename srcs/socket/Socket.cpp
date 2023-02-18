@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/17 17:31:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/18 16:50:03 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -164,6 +164,11 @@ int	Socket::get_socketfd(void) const
 Socket::addrinfo_t*	Socket::get_addrinfo(void) const
 {
 	return (this->_addrinfo);
+}
+
+const ServerConfig&	Socket::get_sconfig(void) const
+{
+	return (this->_config);
 }
 
 std::string	operator+(const char* s, const Socket& socket)

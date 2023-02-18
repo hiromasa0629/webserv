@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:07 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/17 18:51:49 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/18 18:22:37 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,21 +20,37 @@
 # include "utils.hpp"
 # include <map>
 
-class LocationConfig {
+enum ConfigType {
+	SERVER,
+	LOCATION
+}
+
+class BlockConfig {
+	public:
+		BlockConfig(void);
+		~BlockConfig(void);
+		
+		virtual void			set_directives(const std::string& s);
+		virtual	void			print_directives(void);
+		utils::StrVec			get_directives(std::string key) const;
+		ConfigType				get_type(void) const;
+		
+	protected:
+		utils::StrToStrVecMap	_directives;
+		ConfigType				_type;
+};
+
+class LocationConfig : public BlockConfig {
 	public:
 		LocationConfig(void);
 		LocationConfig(utils::StrVec::iterator start, utils::StrVec::iterator end);
 		~LocationConfig(void);
 
 		void	set_directives(const std::string& s);
-		void	print_directives(void);
-
-		utils::StrVec	get_directives(std::string key) const;
 	private:
-		utils::StrToStrVecMap	_directives;
 };
 
-class ServerConfig {
+class ServerConfig : public BlockConfig {
 	public:
 		typedef std::map< std::string, LocationConfig >	StrToLConfigMap;
 		
@@ -45,14 +61,12 @@ class ServerConfig {
 		void	set_directives(const std::string& s);
 		void	print_directives(void);
 
-		utils::StrVec			get_directives(std::string key) const;
 		const StrToLConfigMap&	get_lconfig(void) const;
 
 	private:
 		bool					has_required_directives(void) const;
 
 		std::map< std::string, LocationConfig >	_lconfig;
-		utils::StrToStrVecMap					_directives;
 };
 
 class Config {

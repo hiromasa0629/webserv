@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/17 17:00:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/18 17:08:14 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -223,6 +223,10 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 	if (*maxfd < newfd)
 		*maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);
+	it = this->_sockets.begin();
+	for (; it != this->_sockets.end(); it++)
+		if (it->get_socketfd() == fd)
+			this->_fd_sconfig.insert(std::make_pair(newfd, it->get_sconfig()));
 }
 
 void	Server::handle_pollin_select(int fd)
@@ -252,6 +256,10 @@ void	Server::handle_pollin_select(int fd)
 void	Server::handle_pollout_select(int fd)
 {
 	this->_logger.info<std::string>("POLLOUT (select)");
+	
+	Response	res;
+	
+	res = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
 	send(fd, _example_res, std::strlen(_example_res), 0);
 	if (close(fd) != 0)
 		throw std::runtime_error("Pollout select close");
