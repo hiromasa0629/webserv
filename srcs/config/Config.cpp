@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/18 18:26:02 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/19 17:08:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,9 +155,14 @@ void	BlockConfig::print_directives(void)
 	}
 }
 
-utils::StrVec	BlockConfig::get_directives(std::string key) const
+const utils::StrVec&	BlockConfig::get_directives(std::string key) const
 {
 	return (this->_directives.find(key)->second);
+}
+
+const utils::StrToStrVecMap&	BlockConfig::get_directives(void) const
+{
+	return (this->_directives);
 }
 
 void	BlockConfig::set_directives(const std::string& s)

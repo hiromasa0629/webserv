@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:07 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/18 18:22:37 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/19 17:08:28 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,10 +30,11 @@ class BlockConfig {
 		BlockConfig(void);
 		~BlockConfig(void);
 		
-		virtual void			set_directives(const std::string& s);
-		virtual	void			print_directives(void);
-		utils::StrVec			get_directives(std::string key) const;
-		ConfigType				get_type(void) const;
+		virtual void					set_directives(const std::string& s);
+		virtual	void					print_directives(void);
+		const utils::StrVec&			get_directives(std::string key) const;
+		const utils::StrToStrVecMap&	get_directives(void) const;
+		ConfigType						get_type(void) const;
 		
 	protected:
 		utils::StrToStrVecMap	_directives;

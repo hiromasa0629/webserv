@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/18 18:42:34 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/19 19:00:55 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,14 +26,14 @@ class Response {
 
 	private:
 		void	construct_response(void);
-		bool	is_cgi(void) const;
+		bool	has_handled_error(void);
 	
-		BlockConfig				_config;
 		Request					_request;
 		utils::CharVec			_body;
 		std::string				_status;
 		Logger					_logger;
 		utils::StrToStrVecMap	_directives;
+		std::string				_path;
 };
 
 #endif
