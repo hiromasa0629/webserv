@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/17 18:44:14 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/24 17:13:30 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,12 +109,15 @@ std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator
 {
 	std::vector<utils::CharVec>	res;
 	utils::CharVec				tmp;
+	int							count;
 	
-	for (; start != end; start++)
+	count = 0;
+	for (; start != end; start++, count++)
 	{
 		if ((*start == '\r' && (start + 1) != end && *(start + 1) == '\n'))
 		{
 			start += 1;
+			count += 1;
 			res.push_back(tmp);
 			tmp.clear();
 		}
@@ -122,6 +125,7 @@ std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator
 			tmp.push_back(*start);
 	}
 	res.push_back(tmp);
+	this->_body_size = count;
 	return (res);
 }
 
@@ -165,6 +169,11 @@ std::string	Request::get_host(void) const
 std::string	Request::get_port(void) const
 {
 	return (this->_port);
+}
+
+int	Request::get_body_size(void) const
+{
+	return (this->_body_size);
 }
 
 

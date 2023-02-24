@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/18 17:08:14 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/24 23:51:20 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,6 +149,7 @@ std::vector<char>	Server::read_request_header(int fd)
 	return (res);
 }
 
+/* poll()
 void	Server::accept_connection(int fd)
 {
 	int								newfd;
@@ -208,6 +209,7 @@ void	Server::main_loop(void)
 		}
 	}
 }
+*/
 
 void	Server::accept_connection_select(int fd, int* maxfd)
 {
@@ -257,10 +259,20 @@ void	Server::handle_pollout_select(int fd)
 {
 	this->_logger.info<std::string>("POLLOUT (select)");
 	
-	Response	res;
+	Response		responds;
+	utils::CharVec	body;
+	utils::CharVec	header;
+	utils::CharVec	res;	
 	
-	res = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
-	send(fd, _example_res, std::strlen(_example_res), 0);
+	responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
+	header = responds.get_response_header();
+	body = responds.get_body();
+	std::cout << body.data() << std::endl;
+	res.insert(res.end(), header.begin(), header.end());
+	res.insert(res.end(), body.begin(), body.end());
+	res.push_back('\0');
+	std::cout << "res: " << res.data() << std::endl; // body error
+	send(fd, res.data(), res.size(), 0);
 	if (close(fd) != 0)
 		throw std::runtime_error("Pollout select close");
 	FD_CLR(fd, &this->_fd_sets.second);

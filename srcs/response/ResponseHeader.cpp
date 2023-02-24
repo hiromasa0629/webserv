@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/23 18:35:58 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/24 17:05:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ ResponseHeader::ResponseHeader(void)
 	this->_codes.insert(std::make_pair(500, "Internal Server Error"));
 	this->_codes.insert(std::make_pair(200, "OK"));
 	this->_codes.insert(std::make_pair(301, "Moved Permanently"));
+	this->_codes.insert(std::make_pair(413, "Request Entity Too Large"));
 }
 
 ResponseHeader::~ResponseHeader(void) {}
@@ -38,12 +39,12 @@ void	ResponseHeader::construct(void)
 	if (this->_status == 301)
 		ss << "Location: " << this->_location << "\r\n";
 	ss << "\r\n";
-	this->_res.insert(this->_res.begin(), ss.str().begin(), ss.str().end());
+	this->_responds_header.insert(this->_responds_header.begin(), ss.str().begin(), ss.str().end());
 }
 
-utils::CharVec	ResponseHeader::get_res(void) const
+utils::CharVec	ResponseHeader::get_responds_header(void) const
 {
-	return (this->_res);
+	return (this->_responds_header);
 }
 
 void	ResponseHeader::set_location(std::string location)

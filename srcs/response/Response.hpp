@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/23 18:58:55 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/24 22:31:13 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,9 @@ class Response {
 		Response(void);
 		Response(const Request& request, const ServerConfig& sconfig);
 		~Response(void);
+		
+		utils::CharVec	get_response_header(void) const;
+		const utils::CharVec&	get_body(void) const;
 
 	private:
 		bool	has_handled_error(void);
@@ -34,14 +37,17 @@ class Response {
 		void	handle_cgi(void);
 		void	handle_normal(void);
 		void	handle_normal_redirect(std::string redirect);
+		bool	is_localhost(void) const;
 	
 		Request									_request;
-		utils::CharVec							_body;
 		std::string								_status;
-		Logger									_logger;
 		utils::StrToStrVecMap					_directives;
 		std::string								_path;
+
 		ResponseHeader							_header;
+		utils::CharVec							_body;
+
+		Logger									_logger;
 };
 
 #endif

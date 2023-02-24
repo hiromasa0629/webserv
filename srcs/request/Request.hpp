@@ -6,14 +6,14 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/17 18:42:54 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/24 17:13:12 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef REQUEST_H
 # define REQUEST_H
-# include "Server.hpp"
 # include "utils.hpp"
+# include "Logger.hpp"
 
 class Request {
 	public:
@@ -29,6 +29,7 @@ class Request {
 		std::string	get_uri(void) const;
 		std::string	get_host(void) const;
 		std::string	get_port(void) const;
+		int			get_body_size(void) const;
 		
 	private:
 		void						check_full_request_header(void);
@@ -45,6 +46,7 @@ class Request {
 		std::string					_uri;
 		std::string					_host;
 		std::string					_port;
+		int							_body_size;
 		Logger						_logger;
 };
 
