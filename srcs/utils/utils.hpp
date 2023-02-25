@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 13:22:57 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 13:51:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include <vector>
 # include <map>
 # include <sstream>
+# include <sys/poll.h>
 
 namespace utils {
 
@@ -48,6 +49,9 @@ bool									is_valid_server_directives(std::string s);
 bool									is_valid_location_directives(std::string s);
 
 }
+
+bool			operator==(const struct pollfd& lhs, const struct pollfd& rhs);
+std::ostream&	operator<<(std::ostream& o, const utils::CharVec cv);
 
 #endif
 

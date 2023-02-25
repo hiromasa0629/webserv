@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/24 14:19:18 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 16:57:53 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,8 @@
 # include "Request.hpp"
 # include "Response.hpp"
 
-# define TIMEOUT_SEC	0
-# define TIMEOUT_USEC	100000
+# define TIMEOUT_SEC	1
+# define TIMEOUT_USEC	0
 # define BUFFER_SIZE	1024
 
 class Request;
@@ -70,7 +70,5 @@ class Server {
 		timeval_t					_timeval;
 		Logger						_logger;
 };
-
-bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs);
 
 #endif

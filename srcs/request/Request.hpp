@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/24 17:13:12 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 21:51:22 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,11 +25,13 @@ class Request {
 		void	print_request_header(void) const;
 		void	append(const utils::CharVec& req);
 		
-		std::string	get_method(void) const;
-		std::string	get_uri(void) const;
-		std::string	get_host(void) const;
-		std::string	get_port(void) const;
-		int			get_body_size(void) const;
+		std::string					get_method(void) const;
+		std::string					get_uri(void) const;
+		std::string					get_host(void) const;
+		std::string					get_port(void) const;
+		std::vector<utils::CharVec>	get_body(void) const;
+		int							get_body_size(void) const;
+		bool						get_is_empty_request(void) const;
 		
 	private:
 		void						check_full_request_header(void);
@@ -47,7 +49,9 @@ class Request {
 		std::string					_host;
 		std::string					_port;
 		int							_body_size;
+		
 		Logger						_logger;
+		bool						_is_empty_request;
 };
 
 

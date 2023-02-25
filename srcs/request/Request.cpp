@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/24 17:13:30 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 21:52:17 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,12 @@ Request::Request(const utils::CharVec& req) : _is_complete(false), _method(), _l
 {
 	(void)_method;
 
+	if (req.empty())
+	{
+		this->_is_complete = true;
+		this->_is_empty_request = true;
+		return ;
+	}
 	this->append(req);
 }
 
@@ -68,14 +74,15 @@ void	Request::append(const utils::CharVec& req)
 
 void	Request::check_full_request_header(void)
 {
+	if (this->_req.size() < 4)
+		return ;
 	if (this->is_crlf(this->_req.end() - 4, this->_req.end()))
 		this->_is_complete = true;
 }
 
 bool	Request::is_crlf(utils::CharVec::iterator start, utils::CharVec::iterator end) const
 {
-	utils::CharVec		str(start, end);
-	std::string			s(str.data());
+	std::string			s(start, end);
 
 	if (s == "\r\n\r\n")
 		return (true);
@@ -103,21 +110,21 @@ void	Request::extract_header_n_body(void)
 	for (; (it + 4) != this->_req.end() && !is_crlf(it ,it + 4); it++)
 		;
 	this->_body = this->save_header_n_body(start, it);
+	this->_body_size = 0;
+	for (size_t i = 0; i < this->_body.size(); i++)
+		this->_body_size += this->_body[i].size();
 }
 
 std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator start, utils::CharVec::iterator end)
 {
 	std::vector<utils::CharVec>	res;
 	utils::CharVec				tmp;
-	int							count;
-	
-	count = 0;
-	for (; start != end; start++, count++)
+
+	for (; start != end; start++)
 	{
 		if ((*start == '\r' && (start + 1) != end && *(start + 1) == '\n'))
 		{
 			start += 1;
-			count += 1;
 			res.push_back(tmp);
 			tmp.clear();
 		}
@@ -125,7 +132,6 @@ std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator
 			tmp.push_back(*start);
 	}
 	res.push_back(tmp);
-	this->_body_size = count;
 	return (res);
 }
 
@@ -171,9 +177,19 @@ std::string	Request::get_port(void) const
 	return (this->_port);
 }
 
+std::vector<utils::CharVec>	Request::get_body(void) const
+{
+	return (this->_body);
+}
+
 int	Request::get_body_size(void) const
 {
 	return (this->_body_size);
+}
+
+bool	Request::get_is_empty_request(void) const
+{
+	return (this->_is_empty_request);
 }
 
 

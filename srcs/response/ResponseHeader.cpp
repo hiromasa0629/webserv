@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/24 17:05:26 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 14:50:55 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,7 @@ void	ResponseHeader::set_status(int status)
 void	ResponseHeader::construct(void)
 {
 	std::stringstream	ss;
+	std::string			s;
 	
 	ss << "HTTP/1.1 " << this->_status << " " << this->_codes.find(this->_status)->second << "\r\n";
 	ss << "Content-Type: text/html;\r\n";
@@ -39,7 +40,8 @@ void	ResponseHeader::construct(void)
 	if (this->_status == 301)
 		ss << "Location: " << this->_location << "\r\n";
 	ss << "\r\n";
-	this->_responds_header.insert(this->_responds_header.begin(), ss.str().begin(), ss.str().end());
+	s = ss.str();
+	this->_responds_header.insert(this->_responds_header.begin(), s.begin(), s.end());
 }
 
 utils::CharVec	ResponseHeader::get_responds_header(void) const
@@ -56,3 +58,9 @@ void	ResponseHeader::set_content_length(int length)
 {
 	this->_content_length = length;
 }
+
+int	ResponseHeader::get_status(void) const
+{
+	return (this->_status);
+}
+

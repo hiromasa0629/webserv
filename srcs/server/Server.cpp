@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/24 23:51:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 17:07:43 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -222,6 +222,7 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 		throw std::runtime_error("Server::accept_connection_select() accept");
 	this->_logger.info<std::string>("Server::accept_connection_select() accepted from " + *it);
 	fcntl(newfd, F_SETFL, O_NONBLOCK);
+	std::cout << "newfd: " << newfd << std::endl;
 	if (*maxfd < newfd)
 		*maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);
@@ -234,6 +235,7 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 void	Server::handle_pollin_select(int fd)
 {
 	this->_logger.info<std::string>("POLLIN (select)");
+	this->_logger.info<int>(fd);
 	
 	Request								req;
 	std::map<int, Request>::iterator	it;
@@ -249,7 +251,10 @@ void	Server::handle_pollin_select(int fd)
 		this->_fd_requests.insert(std::make_pair(fd, req));
 	}
 	if (!req.get_is_complete())
+	{
+		std::cout << "NOT COMPLETE" << std::endl;
 		return ;
+	}
 	req.print_request_header();
 	FD_CLR(fd, &this->_fd_sets.first);
 	FD_SET(fd, &this->_fd_sets.second);
@@ -262,17 +267,22 @@ void	Server::handle_pollout_select(int fd)
 	Response		responds;
 	utils::CharVec	body;
 	utils::CharVec	header;
-	utils::CharVec	res;	
+	utils::CharVec	tmp;
+	utils::CharVec	res;
 	
-	responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
-	header = responds.get_response_header();
-	body = responds.get_body();
-	std::cout << body.data() << std::endl;
-	res.insert(res.end(), header.begin(), header.end());
-	res.insert(res.end(), body.begin(), body.end());
-	res.push_back('\0');
-	std::cout << "res: " << res.data() << std::endl; // body error
-	send(fd, res.data(), res.size(), 0);
+	std::cout << "pollout fd: " << fd << std::endl;
+	if (!this->_fd_requests.find(fd)->second.get_is_empty_request())
+	{
+		responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
+		header = responds.get_response_header();
+		body = responds.get_body();
+		tmp.insert(tmp.end(), header.begin(), header.end());
+		tmp.insert(tmp.end(), body.begin(), body.end());
+		res.insert(res.end(), tmp.begin(), tmp.end());
+		// std::cout << res << std::endl;
+		send(fd, res.data(), res.size(), 0);
+		// send(fd, this->_example_res, std::strlen(this->_example_res), 0);
+	}
 	if (close(fd) != 0)
 		throw std::runtime_error("Pollout select close");
 	FD_CLR(fd, &this->_fd_sets.second);
@@ -351,8 +361,3 @@ std::vector<Socket>::iterator	Server::get_socket_from_fd(int fd)
 /***********************************
  *  Non member function
 ***********************************/
-
-bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs)
-{
-	return (lhs.fd == rhs.fd && lhs.events == rhs.events && lhs.revents == rhs.revents);
-}

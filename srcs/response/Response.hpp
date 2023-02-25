@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/24 22:31:13 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/25 23:44:18 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,16 +38,34 @@ class Response {
 		void	handle_normal(void);
 		void	handle_normal_redirect(std::string redirect);
 		bool	is_localhost(void) const;
+		void	print_directives(void) const;
+		
+		void	read_path(void);
+		
+		void	remove_trailing_slash(std::string& path);
 	
 		Request									_request;
 		std::string								_status;
-		utils::StrToStrVecMap					_directives;
 		std::string								_path;
 
 		ResponseHeader							_header;
 		utils::CharVec							_body;
 
 		Logger									_logger;
+		
+		utils::StrToStrVecMap					_s_directives;
+		utils::StrToStrVecMap					_l_directives;
+		utils::StrToStrVecMap					_directives;
+
+		std::string								_uri;
+		std::string								_location_uri;
+		std::string								_rest_of_the_uri;
+		
+		std::string								_host;
+		int										_request_body_size;
+		std::vector<utils::CharVec>				_request_body;
+		std::string								_method;
+		
 };
 
 #endif
