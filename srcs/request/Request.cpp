@@ -6,9 +6,14 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 21:52:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 17:51:13 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
+// Due to the fact that i use std::vector<char> and everytime that i insert or push_back, the capacity will not
+// be the same as its size, thus, making the data() function which returns a pointer to the first element isn't
+// very accurate. The workaround is using a copy constructor or copy assignment after finish messing with the 
+// char vector
 
 #include "Request.hpp"
 
@@ -16,7 +21,7 @@ Request::Request(void) {}
 
 Request::~Request(void) {}
 
-Request::Request(const utils::CharVec& req) : _is_complete(false), _method(), _logger()
+Request::Request(const std::string& req) : _is_complete(false), _method(), _body_size(0), _logger()
 {
 	(void)_method;
 
@@ -62,9 +67,9 @@ void	Request::print_request_header(void) const
 	}
 }
 
-void	Request::append(const utils::CharVec& req)
+void	Request::append(const std::string& req)
 {
-	this->_req.insert(this->_req.end(), req.begin(), req.end());
+	this->_req = req;
 	this->check_full_request_header();
 	if (!this->_is_complete)
 		return ;
@@ -80,7 +85,7 @@ void	Request::check_full_request_header(void)
 		this->_is_complete = true;
 }
 
-bool	Request::is_crlf(utils::CharVec::iterator start, utils::CharVec::iterator end) const
+bool	Request::is_crlf(std::string::iterator start, std::string::iterator end) const
 {
 	std::string			s(start, end);
 
@@ -91,8 +96,8 @@ bool	Request::is_crlf(utils::CharVec::iterator start, utils::CharVec::iterator e
 
 void	Request::extract_header_n_body(void)
 {
-	utils::CharVec::iterator	it;
-	utils::CharVec::iterator	start;
+	std::string::iterator	it;
+	std::string::iterator	start;
 	
 	it = this->_req.begin();
 	start = this->_req.begin();
@@ -100,25 +105,25 @@ void	Request::extract_header_n_body(void)
 		;
 	if (is_crlf(it, it + 4))
 		this->_header = this->save_header_n_body(start, it);
-	// null terminate headers
-	for (size_t i = 0; i < this->_header.size(); i++)
-		this->_header[i].push_back('\0');
+	// // null terminate headers
+	// for (size_t i = 0; i < this->_header.size(); i++)
+	// 	this->_header[i].push_back('\0');
 	if ((it + 4) == this->_req.end())
-		return ; 
+		return ;
 	it = it + 4;
 	start = it;
 	for (; (it + 4) != this->_req.end() && !is_crlf(it ,it + 4); it++)
 		;
 	this->_body = this->save_header_n_body(start, it);
-	this->_body_size = 0;
 	for (size_t i = 0; i < this->_body.size(); i++)
 		this->_body_size += this->_body[i].size();
+	std::cout << "_body_size.size(): " << this->_body.size() << std::endl;
 }
 
-std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator start, utils::CharVec::iterator end)
+std::vector<std::string>	Request::save_header_n_body(std::string::iterator start, std::string::iterator end)
 {
-	std::vector<utils::CharVec>	res;
-	utils::CharVec				tmp;
+	std::vector<std::string>	res;
+	std::string					tmp;
 
 	for (; start != end; start++)
 	{
@@ -138,21 +143,21 @@ std::vector<utils::CharVec>	Request::save_header_n_body(utils::CharVec::iterator
 void	Request::extract_header_info(void)
 {
 	std::string								s;
-	std::vector<utils::CharVec>::iterator	it;
+	std::vector<std::string>::iterator		it;
 	utils::StrVec							split;
 	
 	it = this->_header.begin();
-	split = utils::ft_split(it->data());
+	split = utils::ft_split(*it);
 	this->_method = split[0];
 	this->_uri = split[1];
 	it++;
 	for (; it != this->_header.end(); it++)
 	{
-		split = utils::ft_split(it->data());
+		split = utils::ft_split(*it);
 		if (split[0] == "Host:")
 		{
 			this->_host = split[1].substr(0, split[1].find_first_of(':'));
-			this->_port = split[1].substr(split[1].find_first_of(':'), split[1].size());
+			this->_port = split[1].substr(split[1].find_first_of(':') + 1, split[1].size());
 		}
 	}
 }
@@ -177,7 +182,7 @@ std::string	Request::get_port(void) const
 	return (this->_port);
 }
 
-std::vector<utils::CharVec>	Request::get_body(void) const
+std::vector<std::string>	Request::get_body(void) const
 {
 	return (this->_body);
 }

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 13:51:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 17:46:48 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,8 @@
 # include <sstream>
 # include <sys/poll.h>
 
+# define BUFFER_SIZE	1024
+
 namespace utils {
 
 const char	ws[] = " \t\n\v\f\r";
@@ -26,7 +28,8 @@ const std::string	default_server_directives[] = {"listen",
 													"error_page",
 													"index",
 													"server_name",
-													"cgi"};
+													"cgi",
+													"upload"};
 
 const std::string	default_location_directives[] = {"return",
 														"root",
@@ -47,6 +50,7 @@ bool									is_empty_string(const std::string& s);
 StrVec									ft_split(const std::string& s);
 bool									is_valid_server_directives(std::string s);
 bool									is_valid_location_directives(std::string s);
+void									charvec_shrink_to_fit(CharVec& cv);
 
 }
 

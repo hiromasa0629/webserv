@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 17:07:43 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 17:45:01 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,7 +45,7 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.error<std::string>(e.what());
+		this->_logger.error(e.what());
 		std::exit(errno);
 	}
 	
@@ -73,7 +73,7 @@ void	Server::run(void)
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.error<std::string>(e.what());
+		this->_logger.error(e.what());
 		std::exit(errno);
 	}
 }
@@ -100,7 +100,7 @@ void	Server::init_bind(void)
 	{
 		if (bind(it->get_socketfd(), it->get_addrinfo()->ai_addr, it->get_addrinfo()->ai_addrlen) < 0)
 			throw std::runtime_error("Server::init_bind() " + *it);
-		this->_logger.info<std::string>("Server::init_bind() " + *it);
+		this->_logger.info("Server::init_bind() " + *it);
 	}
 }
 
@@ -113,7 +113,7 @@ void	Server::init_listen(void)
 	{
 		if (listen(it->get_socketfd(),SOMAXCONN) < 0)
 			throw std::runtime_error("Server::init_listen() " + *it);
-		this->_logger.info<std::string>("Server::init_listen() Listening... " + *it);
+		this->_logger.info("Server::init_listen() Listening... " + *it);
 	}
 }
 
@@ -128,21 +128,45 @@ void	Server::insert_fd_to_fds(int fd, short event)
 	
 }
 
-std::vector<char>	Server::read_request_header(int fd)
+std::string			Server::read_request(int fd)
 {
-	std::vector<char>	buf(BUFFER_SIZE);
-	std::vector<char>	res;
+	char				buf[BUFFER_SIZE];
+	std::string			res;
 	int					ret;
 	
-	ret = recv(fd, buf.data(), BUFFER_SIZE, 0);
+	ret = recv(fd, buf, BUFFER_SIZE, 0);
 	while (ret > 0)
 	{
-        res.insert(res.end(), buf.begin(), buf.begin() + ret);
-		buf.clear();
-		buf.resize(BUFFER_SIZE);
+		for (int i = 0; i < ret; i++)
+			res.push_back(buf[i]);
 		if (ret < BUFFER_SIZE)
 			break ;
-		ret = recv(fd, buf.data(), BUFFER_SIZE, 0);
+		ret = recv(fd, buf, BUFFER_SIZE, 0);
+	}
+	if (ret == -1)
+		throw std::runtime_error("Recv()");
+	return (res);
+}
+
+std::vector<char>	Server::read_request_header(int fd)
+{
+	char				buff[BUFFER_SIZE];
+	std::vector<char>	buf(BUFFER_SIZE);
+	std::vector<char>	res;
+	std::string			ress;
+	int					ret;
+	
+	ret = recv(fd, buff, BUFFER_SIZE, 0);
+	while (ret > 0)
+	{
+        // res.insert(res.end(), buf.begin(), buf.begin() + ret);
+		for (int i = 0; i < ret; i++)
+			ress.push_back(buff[i]);
+		// buf.clear();
+		// buf.resize(BUFFER_SIZE);
+		if (ret < BUFFER_SIZE)
+			break ;
+		ret = recv(fd, buff, BUFFER_SIZE, 0);
 	}
 	if (ret == -1)
 		throw std::runtime_error("Recv()");
@@ -220,9 +244,9 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 		throw std::runtime_error("Server::accept_connection_select() Missing socketfd");
 	if ((newfd = accept(it->get_socketfd(), it->get_addrinfo()->ai_addr, &(it->get_addrinfo()->ai_addrlen))) < 0)
 		throw std::runtime_error("Server::accept_connection_select() accept");
-	this->_logger.info<std::string>("Server::accept_connection_select() accepted from " + *it);
+	this->_logger.info("Server::accept_connection_select() accepted from " + *it);
 	fcntl(newfd, F_SETFL, O_NONBLOCK);
-	std::cout << "newfd: " << newfd << std::endl;
+	// std::cout << "newfd: " << newfd << std::endl;
 	if (*maxfd < newfd)
 		*maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);
@@ -234,20 +258,19 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 
 void	Server::handle_pollin_select(int fd)
 {
-	this->_logger.info<std::string>("POLLIN (select)");
-	this->_logger.info<int>(fd);
+	this->_logger.info("POLLIN (select)");
 	
 	Request								req;
 	std::map<int, Request>::iterator	it;
 	
 	if ((it = this->_fd_requests.find(fd)) != this->_fd_requests.end())
 	{
-		it->second.append(read_request_header(fd));
+		it->second.append(this->read_request(fd));
 		req = it->second;
 	}
 	else
 	{
-		req = Request(read_request_header(fd));
+		req = Request(this->read_request(fd));
 		this->_fd_requests.insert(std::make_pair(fd, req));
 	}
 	if (!req.get_is_complete())
@@ -262,26 +285,21 @@ void	Server::handle_pollin_select(int fd)
 
 void	Server::handle_pollout_select(int fd)
 {
-	this->_logger.info<std::string>("POLLOUT (select)");
+	this->_logger.info("POLLOUT (select)");
 	
 	Response		responds;
-	utils::CharVec	body;
-	utils::CharVec	header;
-	utils::CharVec	tmp;
-	utils::CharVec	res;
+	std::string		body;
+	std::string		header;
+	std::string		res;
 	
-	std::cout << "pollout fd: " << fd << std::endl;
+	// std::cout << "pollout fd: " << fd << std::endl;
 	if (!this->_fd_requests.find(fd)->second.get_is_empty_request())
 	{
 		responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
 		header = responds.get_response_header();
 		body = responds.get_body();
-		tmp.insert(tmp.end(), header.begin(), header.end());
-		tmp.insert(tmp.end(), body.begin(), body.end());
-		res.insert(res.end(), tmp.begin(), tmp.end());
-		// std::cout << res << std::endl;
-		send(fd, res.data(), res.size(), 0);
-		// send(fd, this->_example_res, std::strlen(this->_example_res), 0);
+		res.append(header).append(body);
+		send(fd, res.c_str(), res.size(), 0);
 	}
 	if (close(fd) != 0)
 		throw std::runtime_error("Pollout select close");

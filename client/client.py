@@ -37,9 +37,9 @@ def main():
 	if (len(sys.argv) != 3):
 		print("python3 client.py [method] [URI]")
 		return
-	if (sys.argv[1] == "get"):
+	if (sys.argv[1] == "GET"):
 		get_request(sys.argv[2])
-	elif (sys.argv[1] == "post"):
+	elif (sys.argv[1] == "POST"):
 		post_request(sys.argv[2])
 
 if __name__ == "__main__":

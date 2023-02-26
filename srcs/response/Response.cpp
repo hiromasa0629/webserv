@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 23:45:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 21:46:31 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ Response::~Response(void)
 	
 }
 
-Response::Response(const Request& request, const ServerConfig& sconfig) : _request(request), _status("200") //, _has_location_root(false)
+Response::Response(const Request& request, const ServerConfig& sconfig) : _request(request), _is_autoindex(false), _is_redirection(false)
 {
 	this->_uri					= this->_request.get_uri();
 	this->_host					= this->_request.get_host();
@@ -30,17 +30,28 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	this->_request_body_size	= this->_request.get_body_size();
 	this->_method				= this->_request.get_method();
 	
+	
 	this->set_directives(sconfig);
 	this->set_path();
 	
-	std::cout << "set_path: " << this->_path << std::endl;
-	
+	if (this->_directives.find("return") != this->_directives.end())
+		this->_is_redirection = true;
+	if (this->_directives.find("autoindex") != this->_directives.end() && this->_directives.find("autoindex")->second[0] == "on")
+		this->_is_autoindex = true;
+
 	if (this->has_handled_error())
 		this->handle_error();
 	else if (this->is_cgi())
 		this->handle_cgi();
+	else if (this->_is_redirection)
+		this->handle_redirect();
+	else if (this->_is_autoindex)
+		this->handle_autoindex();
 	else
 		this->handle_normal();
+
+	this->_logger.debug(this->_header.get_status());
+	this->_logger.debug(this->_path);
 }
 
 void	Response::handle_error(void)
@@ -75,11 +86,6 @@ void	Response::handle_normal(void)
 	std::ifstream	infile;
 	std::string		line;
 	
-	if (this->_directives.find("return") != this->_directives.end())
-	{
-		this->handle_normal_redirect(this->_directives.find("return")->second[0]);
-		return ;
-	}
 	this->read_path();
 	this->_header.set_content_length(this->_body.size());
 	this->_header.set_location("");
@@ -87,10 +93,24 @@ void	Response::handle_normal(void)
 	this->_header.construct();
 }
 
-void	Response::handle_normal_redirect(std::string redirect)
+void	Response::handle_autoindex(void)
+{
+	this->_path.clear();
+	this->_path.append(this->_directives["root"][0]);
+	this->remove_trailing_slash(this->_path);
+	if (this->_l_directives.find("root") == this->_l_directives.end())
+		this->_path.append(this->_location_uri);
+	
+		
+}
+
+void	Response::handle_redirect(void)
 {
 	std::stringstream	ss;
+	std::string			redirect;
 	
+	redirect = this->_directives["return"][0];
+	ss << "http://";
 	ss << this->_request.get_host() << ":" << this->_request.get_port();
 	if (redirect.front() != '/')
 		redirect.insert(redirect.begin(), '/');
@@ -133,7 +153,7 @@ bool	Response::has_handled_error(void)
 		return (true);
 	}
 	// try open path if not (autoindex and redirection)
-	if (this->_directives.find("autoindex") != this->_directives.end() && this->_directives.find("return") != this->_directives.end())
+	if (this->_is_autoindex || this->_is_redirection)
 		return (false);
 	infile.open(this->_path);
 	if (!infile.good())
@@ -146,7 +166,7 @@ bool	Response::has_handled_error(void)
 			return (true);
 		}
 	}
-	this->_logger.debug("Passed error handle");
+	// this->_logger.debug("Passed error handle");
 	return (false);
 }
 
@@ -185,7 +205,7 @@ void	Response::set_path(void)
 	}
 	else // Has matching location block
 	{
-		std::cout << "root: " << this->_directives.find("root")->second[0] << std::endl;
+		// std::cout << "root: " << this->_directives.find("root")->second[0] << std::endl;
 		path.append(this->_directives.find("root")->second[0]);
 		
 		this->remove_trailing_slash(path);
@@ -211,15 +231,12 @@ bool	Response::is_cgi(void)
 	return (false);
 }
 
-utils::CharVec		Response::get_response_header(void) const
-{
-	utils::CharVec	header;
-	
-	header = this->_header.get_responds_header();
-	return (header);
+std::string	Response::get_response_header(void) const
+{	
+	return (this->_header.get_response_header());
 }
 
-const utils::CharVec&	Response::get_body(void) const
+std::string	Response::get_body(void) const
 {
 	return (this->_body);
 }
@@ -248,25 +265,25 @@ void	Response::read_path(void)
 {
 	std::ifstream	infile;
 	std::string		line;
+	char			c;
 	
 	infile.open(this->_path);
-	std::cout << "this->_path: " << this->_path << std::endl;
+	// std::cout << "this->_path: " << this->_path << std::endl;
 	if (!infile.good())
 	{
-		infile.open(this->_path + ".html");
+		infile.open(this->_path.append(".html"));
 		if (!infile.good())
 		{
 			this->_logger.warn("_path opened failed, defaulted to 404.html");
 			infile.open("files/error/404.html");
 		}
 	}
-	while (std::getline(infile, line))
+	while (infile.get(c))
 	{
-		line.append("\r\n");
-		this->_body.insert(this->_body.end(), line.begin(), line.end());
+		if (infile.fail())
+			throw std::runtime_error("Infile read");
+		this->_body.push_back(c);
 	}
-	this->_body.push_back('\r');
-	this->_body.push_back('\n');
 }
 
 void	Response::remove_trailing_slash(std::string& path)

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 16:57:53 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 16:27:46 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,6 @@
 
 # define TIMEOUT_SEC	1
 # define TIMEOUT_USEC	0
-# define BUFFER_SIZE	1024
 
 class Request;
 
@@ -57,6 +56,7 @@ class Server {
 		void	handle_pollout_select(int fd);
 		
 		std::vector<char>	read_request_header(int fd);
+		std::string			read_request(int fd);
 		bool				is_socketfd(int fd) const;
 		
 		std::vector<Socket>::iterator	get_socket_from_fd(int fd);

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 23:44:18 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 20:26:17 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,8 +25,8 @@ class Response {
 		Response(const Request& request, const ServerConfig& sconfig);
 		~Response(void);
 		
-		utils::CharVec	get_response_header(void) const;
-		const utils::CharVec&	get_body(void) const;
+		std::string				get_response_header(void) const;
+		std::string				get_body(void) const;
 
 	private:
 		bool	has_handled_error(void);
@@ -36,22 +36,20 @@ class Response {
 		void	handle_error(void);
 		void	handle_cgi(void);
 		void	handle_normal(void);
-		void	handle_normal_redirect(std::string redirect);
+		void	handle_redirect(void);
+		void	handle_autoindex(void);
 		bool	is_localhost(void) const;
 		void	print_directives(void) const;
 		
 		void	read_path(void);
 		
 		void	remove_trailing_slash(std::string& path);
-	
+
 		Request									_request;
-		std::string								_status;
 		std::string								_path;
 
 		ResponseHeader							_header;
-		utils::CharVec							_body;
-
-		Logger									_logger;
+		std::string								_body;
 		
 		utils::StrToStrVecMap					_s_directives;
 		utils::StrToStrVecMap					_l_directives;
@@ -63,9 +61,13 @@ class Response {
 		
 		std::string								_host;
 		int										_request_body_size;
-		std::vector<utils::CharVec>				_request_body;
+		std::vector<std::string>				_request_body;
 		std::string								_method;
 		
+		bool									_is_autoindex;
+		bool									_is_redirection;
+		
+		Logger									_logger;
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 13:51:49 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 14:09:38 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,15 @@ bool	is_valid_location_directives(std::string s)
 	return (false);
 }
 
+void	charvec_shrink_to_fit(CharVec& cv)
+{
+	CharVec	tmp;
+
+	tmp = cv;
+	CharVec().swap(cv);
+	cv = tmp;
+}
+
 }
 
 bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs)
@@ -80,3 +89,4 @@ std::ostream&	operator<<(std::ostream& o, const utils::CharVec cv)
 		o << cv[i];
 	return (o);
 }
+

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/25 14:50:55 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/26 16:18:28 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,13 +40,12 @@ void	ResponseHeader::construct(void)
 	if (this->_status == 301)
 		ss << "Location: " << this->_location << "\r\n";
 	ss << "\r\n";
-	s = ss.str();
-	this->_responds_header.insert(this->_responds_header.begin(), s.begin(), s.end());
+	this->_response_header = ss.str();
 }
 
-utils::CharVec	ResponseHeader::get_responds_header(void) const
+std::string	ResponseHeader::get_response_header(void) const
 {
-	return (this->_responds_header);
+	return (this->_response_header);
 }
 
 void	ResponseHeader::set_location(std::string location)
