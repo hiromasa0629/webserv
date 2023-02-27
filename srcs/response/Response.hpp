@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 20:26:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 12:52:14 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include "utils.hpp"
 # include "Logger.hpp"
 # include "ResponseHeader.hpp"
+# include "ResponseAutoindex.hpp"
 
 class Response {
 	public:
@@ -49,6 +50,7 @@ class Response {
 		std::string								_path;
 
 		ResponseHeader							_header;
+		ResponseAutoindex						_autoindex;
 		std::string								_body;
 		
 		utils::StrToStrVecMap					_s_directives;
@@ -60,6 +62,7 @@ class Response {
 		std::string								_rest_of_the_uri;
 		
 		std::string								_host;
+		std::string								_port;
 		int										_request_body_size;
 		std::vector<std::string>				_request_body;
 		std::string								_method;

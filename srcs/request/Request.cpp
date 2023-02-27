@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 17:51:13 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 13:12:47 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,6 +150,8 @@ void	Request::extract_header_info(void)
 	split = utils::ft_split(*it);
 	this->_method = split[0];
 	this->_uri = split[1];
+	if (this->_uri.length() > 1 && this->_uri.back() == '/')	// remove trailing slash except /
+		this->_uri.pop_back();
 	it++;
 	for (; it != this->_header.end(); it++)
 	{

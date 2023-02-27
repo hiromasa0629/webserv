@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 21:46:31 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 13:53:29 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,7 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 {
 	this->_uri					= this->_request.get_uri();
 	this->_host					= this->_request.get_host();
+	this->_port					= this->_request.get_port();
 	this->_request_body			= this->_request.get_body();
 	this->_request_body_size	= this->_request.get_body_size();
 	this->_method				= this->_request.get_method();
@@ -87,6 +88,7 @@ void	Response::handle_normal(void)
 	std::string		line;
 	
 	this->read_path();
+	
 	this->_header.set_content_length(this->_body.size());
 	this->_header.set_location("");
 	this->_header.set_status(200);
@@ -95,13 +97,46 @@ void	Response::handle_normal(void)
 
 void	Response::handle_autoindex(void)
 {
+	std::ifstream	infile;
+	DIR*			dir;
+	
 	this->_path.clear();
 	this->_path.append(this->_directives["root"][0]);
 	this->remove_trailing_slash(this->_path);
-	if (this->_l_directives.find("root") == this->_l_directives.end())
-		this->_path.append(this->_location_uri);
+	if (this->_directives.find("index") != this->_directives.end())	// If has index
+	{
+		infile.open(this->_path + "/" + this->_directives["index"][0]);
+		if (infile.good())
+		{
+			this->_path.append("/").append(this->_directives["index"][0]);
+			this->handle_normal();
+			return ;
+		}
+	}
+	if (!this->_rest_of_the_uri.empty())	// if /autoindex/file.html
+	{
+		infile.open(this->_path + this->_rest_of_the_uri);
+		dir = opendir(std::string().append(this->_path).append(this->_rest_of_the_uri).c_str());
+		if (infile.good() && !dir)
+		{
+			this->_path.append(this->_rest_of_the_uri);
+			this->handle_normal();
+			return ;
+		}
+		else if (!dir)
+		{
+			this->_header.set_status(404);
+			this->handle_error();
+			return ;
+		}
+	}
+	this->_autoindex = ResponseAutoindex(this->_path, this->_rest_of_the_uri, this->_host, this->_port, this->_location_uri);
+	this->_body = this->_autoindex.get_body();
 	
-		
+	this->_header.set_content_length(this->_body.size());
+	this->_header.set_location("");
+	this->_header.set_status(200);
+	this->_header.construct();
 }
 
 void	Response::handle_redirect(void)
@@ -115,6 +150,7 @@ void	Response::handle_redirect(void)
 	if (redirect.front() != '/')
 		redirect.insert(redirect.begin(), '/');
 	ss << redirect;
+	
 	this->_header.set_content_length(0);
 	this->_header.set_location(ss.str());
 	this->_header.set_status(301);
@@ -180,7 +216,11 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	
 	this->_s_directives = sconfig.get_directives();
 	second_slash_index = std::string(this->_uri.begin() + 1, this->_uri.end()).find_first_of('/');
-	location = this->_uri.substr(0, second_slash_index);
+	std::cout << "ss_index: " << second_slash_index << std::endl;
+	if (second_slash_index != std::string::npos)
+		location = this->_uri.substr(0, second_slash_index + 1);
+	else
+		location = this->_uri;
 	if ((it = sconfig.get_lconfig().find(location)) != sconfig.get_lconfig().end())
 		this->_l_directives = it->second.get_directives();
 	this->_directives = this->_s_directives;
@@ -188,8 +228,10 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	for (; it2 != this->_l_directives.end(); it2++)
 		this->_directives[it2->first] = it2->second;
 	if (second_slash_index != std::string::npos)
-		this->_rest_of_the_uri = this->_uri.substr(second_slash_index, this->_uri.length());
+		this->_rest_of_the_uri = this->_uri.substr(second_slash_index + 1, this->_uri.length());
 	this->_location_uri = location;
+	std::cout << "location: " << location << std::endl;
+	std::cout << "resst_uri: " << this->_rest_of_the_uri << std::endl;
 }
 
 void	Response::set_path(void)
@@ -207,7 +249,6 @@ void	Response::set_path(void)
 	{
 		// std::cout << "root: " << this->_directives.find("root")->second[0] << std::endl;
 		path.append(this->_directives.find("root")->second[0]);
-		
 		this->remove_trailing_slash(path);
 		if (this->_l_directives.find("root") == this->_l_directives.end())
 			path.append(this->_location_uri);
