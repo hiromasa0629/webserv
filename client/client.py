@@ -5,9 +5,7 @@ import sys
 
 URL = "http://localhost:8080"
 
-def get_request(path = ""):
-	res = requests.get(url=URL + path)
-
+def	print_response(res):
 	print("---------------------------------------------------------")
 	print(Fore.GREEN + "Request" + Fore.RESET)
 	print(res.request.method, res.request.url)
@@ -18,29 +16,28 @@ def get_request(path = ""):
 	print(res.status_code)
 	print(json.dumps(dict(res.headers), indent=2))
 	print(res.text)
+
+def get_request(path = ""):
+	res = requests.get(url=URL + path)
+	print_response(res)
 
 def post_request(path = ""):
 	res = requests.post(url=URL + path)
-	
-	print("---------------------------------------------------------")
-	print(Fore.GREEN + "Request" + Fore.RESET)
-	print(res.request.method, res.request.url)
-	print(json.dumps(dict(res.request.headers), indent=2))
+	print_response(res)
 
-	print("\n")
-	print(Fore.GREEN + "Response" + Fore.RESET)
-	print(res.status_code)
-	print(json.dumps(dict(res.headers), indent=2))
-	print(res.text)
+def post_request_image(path = ""):
+	res = requests.post(url=URL + path, data=open("assets/OIP.jpeg", "rb"))
+	print_response(res)
 
 def main():
-	if (len(sys.argv) != 3):
-		print("python3 client.py [method] [URI]")
-		return
-	if (sys.argv[1] == "GET"):
-		get_request(sys.argv[2])
-	elif (sys.argv[1] == "POST"):
-		post_request(sys.argv[2])
+	# if (len(sys.argv) != 3):
+	# 	print("python3 client.py [method] [URI]")
+	# 	return
+	# if (sys.argv[1] == "GET"):
+	# 	get_request(sys.argv[2])
+	# elif (sys.argv[1] == "POST"):
+	# 	post_request(sys.argv[2])
+	post_request_image(sys.argv[1])
 
 if __name__ == "__main__":
     main()

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 16:08:40 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 20:34:18 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,26 +29,27 @@ class Request {
 		std::string					get_uri(void) const;
 		std::string					get_host(void) const;
 		std::string					get_port(void) const;
-		std::vector<std::string>	get_body(void) const;
+		std::string					get_body(void) const;
 		int							get_body_size(void) const;
 		bool						get_is_empty_request(void) const;
 		
 	private:
 		void						check_full_request_header(void);
-		bool						is_crlf(utils::CharVec::iterator start, utils::CharVec::iterator end) const;
+		bool						is_crlf(std::string::iterator start, std::string::iterator end) const;
 		void						extract_header_n_body(void);
-		std::vector<std::string>	save_header_n_body(utils::CharVec::iterator start, utils::CharVec::iterator end);
+		std::vector<std::string>	save_header(std::string::iterator start, std::string::iterator end);
+		std::string					save_body(std::string::iterator start, std::string::iterator end);
 		void						extract_header_info(void);
 		
 		std::string					_req;
-		std::vector<std::string>	_header;
-		std::vector<std::string>	_body;
+		utils::StrVec				_header;
+		std::string					_body;
 		bool						_is_complete;
 		std::string					_method;
 		std::string					_uri;
 		std::string					_host;
 		std::string					_port;
-		int							_body_size;
+		int							_content_length;
 		
 		Logger						_logger;
 		bool						_is_empty_request;

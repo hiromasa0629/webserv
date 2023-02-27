@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 17:45:01 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 20:27:45 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,31 +145,9 @@ std::string			Server::read_request(int fd)
 	}
 	if (ret == -1)
 		throw std::runtime_error("Recv()");
-	return (res);
-}
-
-std::vector<char>	Server::read_request_header(int fd)
-{
-	char				buff[BUFFER_SIZE];
-	std::vector<char>	buf(BUFFER_SIZE);
-	std::vector<char>	res;
-	std::string			ress;
-	int					ret;
-	
-	ret = recv(fd, buff, BUFFER_SIZE, 0);
-	while (ret > 0)
-	{
-        // res.insert(res.end(), buf.begin(), buf.begin() + ret);
-		for (int i = 0; i < ret; i++)
-			ress.push_back(buff[i]);
-		// buf.clear();
-		// buf.resize(BUFFER_SIZE);
-		if (ret < BUFFER_SIZE)
-			break ;
-		ret = recv(fd, buff, BUFFER_SIZE, 0);
-	}
-	if (ret == -1)
-		throw std::runtime_error("Recv()");
+	// for (size_t i = 0; i < res.size(); i++)
+	// 	std::cout << res[i];
+	// std::cout << std::endl;
 	return (res);
 }
 

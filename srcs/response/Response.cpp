@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 13:53:29 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 20:24:13 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ Response::~Response(void)
 	
 }
 
-Response::Response(const Request& request, const ServerConfig& sconfig) : _request(request), _is_autoindex(false), _is_redirection(false)
+Response::Response(const Request& request, const ServerConfig& sconfig) : _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
 {
 	this->_uri					= this->_request.get_uri();
 	this->_host					= this->_request.get_host();
@@ -39,6 +39,8 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 		this->_is_redirection = true;
 	if (this->_directives.find("autoindex") != this->_directives.end() && this->_directives.find("autoindex")->second[0] == "on")
 		this->_is_autoindex = true;
+	if (this->_directives.find("upload") != this->_directives.end() && this->_method == "POST")
+		this->_is_upload = true;
 
 	if (this->has_handled_error())
 		this->handle_error();
@@ -48,6 +50,8 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 		this->handle_redirect();
 	else if (this->_is_autoindex)
 		this->handle_autoindex();
+	else if (this->_is_upload)
+		this->handle_upload();
 	else
 		this->handle_normal();
 
@@ -80,6 +84,15 @@ void	Response::handle_error(void)
 void	Response::handle_cgi(void)
 {
 	
+}
+
+void	Response::handle_upload(void)
+{
+	this->_path.clear();
+	this->_path.append(this->_directives["upload"][0]);
+	
+	this->_header.set_status(404);
+	this->handle_error();
 }
 
 void	Response::handle_normal(void)
@@ -125,14 +138,14 @@ void	Response::handle_autoindex(void)
 		}
 		else if (!dir)
 		{
-			this->_header.set_status(404);
+			this->_header.set_status(404); 	
 			this->handle_error();
 			return ;
 		}
 	}
 	this->_autoindex = ResponseAutoindex(this->_path, this->_rest_of_the_uri, this->_host, this->_port, this->_location_uri);
 	this->_body = this->_autoindex.get_body();
-	
+
 	this->_header.set_content_length(this->_body.size());
 	this->_header.set_location("");
 	this->_header.set_status(200);
@@ -183,14 +196,15 @@ bool	Response::has_handled_error(void)
 	it = this->_directives.find("client_max_body_size");
 	if (it != this->_directives.end() && std::atoi(it->second[0].c_str()) < this->_request.get_body_size())
 	{
-		std::cout << "request_body_size: " << this->_request_body_size << std::endl;
+		// std::cout << "request_body_size: " << this->_request_body_size << std::endl;
 		this->_header.set_status(413);
 		this->_logger.warn("Body size too large");
 		return (true);
 	}
 	// try open path if not (autoindex and redirection)
-	if (this->_is_autoindex || this->_is_redirection)
+	if (this->_is_autoindex || this->_is_redirection || this->_method != "GET")
 		return (false);
+	
 	infile.open(this->_path);
 	if (!infile.good())
 	{
@@ -216,7 +230,6 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	
 	this->_s_directives = sconfig.get_directives();
 	second_slash_index = std::string(this->_uri.begin() + 1, this->_uri.end()).find_first_of('/');
-	std::cout << "ss_index: " << second_slash_index << std::endl;
 	if (second_slash_index != std::string::npos)
 		location = this->_uri.substr(0, second_slash_index + 1);
 	else
@@ -230,8 +243,8 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	if (second_slash_index != std::string::npos)
 		this->_rest_of_the_uri = this->_uri.substr(second_slash_index + 1, this->_uri.length());
 	this->_location_uri = location;
-	std::cout << "location: " << location << std::endl;
-	std::cout << "resst_uri: " << this->_rest_of_the_uri << std::endl;
+	// std::cout << "location: " << location << std::endl;
+	// std::cout << "resst_uri: " << this->_rest_of_the_uri << std::endl;
 }
 
 void	Response::set_path(void)

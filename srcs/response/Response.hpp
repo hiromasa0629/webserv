@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 12:52:14 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 20:36:56 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,6 +39,7 @@ class Response {
 		void	handle_normal(void);
 		void	handle_redirect(void);
 		void	handle_autoindex(void);
+		void	handle_upload(void);
 		bool	is_localhost(void) const;
 		void	print_directives(void) const;
 		
@@ -64,11 +65,12 @@ class Response {
 		std::string								_host;
 		std::string								_port;
 		int										_request_body_size;
-		std::vector<std::string>				_request_body;
+		std::string								_request_body;
 		std::string								_method;
 		
 		bool									_is_autoindex;
 		bool									_is_redirection;
+		bool									_is_upload;
 		
 		Logger									_logger;
 };

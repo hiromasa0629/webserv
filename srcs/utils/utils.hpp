@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 17:46:48 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 14:59:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ const std::string	default_location_directives[] = {"return",
 														"index",
 														"client_max_body_size",
 														"cgi",
-														"upload_store"};
+														"upload"};
 
 typedef std::vector<char>						CharVec;
 typedef std::vector<std::string>				StrVec;
