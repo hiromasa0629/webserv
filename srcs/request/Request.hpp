@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 20:34:18 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/28 15:39:53 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,14 +32,17 @@ class Request {
 		std::string					get_body(void) const;
 		int							get_body_size(void) const;
 		bool						get_is_empty_request(void) const;
+		std::string					get_boundary(void) const;
 		
 	private:
 		void						check_full_request_header(void);
 		bool						is_crlf(std::string::iterator start, std::string::iterator end) const;
 		void						extract_header_n_body(void);
-		std::vector<std::string>	save_header(std::string::iterator start, std::string::iterator end);
+		utils::StrVec				save_header(std::string::iterator start, std::string::iterator end);
 		std::string					save_body(std::string::iterator start, std::string::iterator end);
 		void						extract_header_info(void);
+		void						extract_boundary(void);
+		
 		
 		std::string					_req;
 		utils::StrVec				_header;
@@ -50,6 +53,8 @@ class Request {
 		std::string					_host;
 		std::string					_port;
 		int							_content_length;
+		utils::StrVec				_content_type;
+		std::string					_boundary;
 		
 		Logger						_logger;
 		bool						_is_empty_request;

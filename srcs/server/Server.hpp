@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 15:30:48 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/28 14:24:35 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,12 +44,12 @@ class Server {
 		void	init_listen(void);
 		void	insert_fd_to_fds(int fd, short event);
 		
-		/* poll()
-		void	main_loop(void);
-		void	accept_connection(int fd);
-		void	handle_pollin(const pollfd_t& pollfd);
-		void	handle_pollout(const pollfd_t& pollfd);
-		*/
+		// poll()
+		// void	main_loop(void);
+		// void	accept_connection(int fd);
+		// void	handle_pollin(const pollfd_t& pollfd);
+		// void	handle_pollout(const pollfd_t& pollfd);
+		
 		void	main_loop_select(void);
 		void	accept_connection_select(int fd, int* maxfd);
 		void	handle_pollin_select(int fd);

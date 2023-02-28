@@ -26,18 +26,21 @@ def post_request(path = ""):
 	print_response(res)
 
 def post_request_image(path = ""):
-	res = requests.post(url=URL + path, data=open("assets/OIP.jpeg", "rb"))
+	files = {'file': open('assets/OIP.jpeg', 'rb')}
+	res = requests.post(url=URL + path, files=files)
 	print_response(res)
 
 def main():
-	# if (len(sys.argv) != 3):
-	# 	print("python3 client.py [method] [URI]")
-	# 	return
-	# if (sys.argv[1] == "GET"):
-	# 	get_request(sys.argv[2])
-	# elif (sys.argv[1] == "POST"):
-	# 	post_request(sys.argv[2])
-	post_request_image(sys.argv[1])
+	if (len(sys.argv) != 3):
+		print("python3 client.py [method] [URI]")
+		return
+	if (sys.argv[1] == "GET"):
+		get_request(sys.argv[2])
+	elif (sys.argv[1] == "POST"):
+		if (sys.argv[2] == "/upload"):
+			post_request_image(sys.argv[2])
+		else:
+			post_request(sys.argv[2])
 
 if __name__ == "__main__":
     main()

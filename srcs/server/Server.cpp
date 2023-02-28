@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 20:27:45 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/28 15:17:56 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,67 +151,77 @@ std::string			Server::read_request(int fd)
 	return (res);
 }
 
-/* poll()
-void	Server::accept_connection(int fd)
-{
-	int								newfd;
-	std::vector<Socket>::iterator	it;
+// // poll()
+// void	Server::accept_connection(int fd)
+// {
+// 	int								newfd;
+// 	std::vector<Socket>::iterator	it;
 	
-	if ((it = this->get_socket_from_fd(fd)) == this->_sockets.end())
-		throw std::runtime_error("Server::accept_connection() Missing socketfd");
-	if ((newfd = accept(it->get_socketfd(), it->get_addrinfo()->ai_addr, &(it->get_addrinfo()->ai_addrlen))) < 0)
-		throw std::runtime_error("Server::accept_connection() accept");
-	this->_logger.info<std::string>("Server::accept_connection() accepted from " + *it);
-	fcntl(newfd, F_SETFL, O_NONBLOCK);
-	this->insert_fd_to_fds(newfd, POLLIN);
-}
+// 	if ((it = this->get_socket_from_fd(fd)) == this->_sockets.end())
+// 		throw std::runtime_error("Server::accept_connection() Missing socketfd");
+// 	if ((newfd = accept(it->get_socketfd(), it->get_addrinfo()->ai_addr, &(it->get_addrinfo()->ai_addrlen))) < 0)
+// 		throw std::runtime_error("Server::accept_connection() accept");
+// 	this->_logger.info<std::string>("Server::accept_connection() accepted from " + *it);
+// 	fcntl(newfd, F_SETFL, O_NONBLOCK);
+// 	this->insert_fd_to_fds(newfd, POLLIN);
+// }
 
-void	Server::handle_pollin(const pollfd_t& pfd)
-{
-	this->_logger.info<std::string>("POLLIN");
-	read_request_header(pfd.fd);
-	this->insert_fd_to_fds(pfd.fd, POLLOUT);
-	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
+// void	Server::handle_pollin(const pollfd_t& pfd)
+// {
+// 	this->_logger.info<std::string>("POLLIN");
+// 	read_request(pfd.fd);
+// 	this->insert_fd_to_fds(pfd.fd, POLLOUT);
+// 	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
 	
-}
+// }
 
-void	Server::handle_pollout(const pollfd_t& pfd)
-{
-	this->_logger.info<std::string>("POLLOUT");
-	send(pfd.fd, _example_res, std::strlen(_example_res), 0);
-	close(pfd.fd);
-	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
-}
+// void	Server::handle_pollout(const pollfd_t& pfd)
+// {
+// 	this->_logger.info<std::string>("POLLOUT");
+// 	send(pfd.fd, _example_res, std::strlen(_example_res), 0);
+// 	close(pfd.fd);
+// 	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
+// }
 
-void	Server::main_loop(void)
-{
-	int poll_ready;
-	std::vector<Socket>::iterator	it;
+// void	Server::main_loop(void)
+// {
+// 	int poll_ready;
+// 	std::vector<Socket>::iterator	it;
 	
-	it = this->_sockets.begin();
-	for (; it != this->_sockets.end(); it++)
-		this->insert_fd_to_fds(it->get_socketfd(), POLLIN);
-	while (1)
-	{
-		poll_ready = poll(this->_fds.data(), this->_fds.size(), 100);
-		if (poll_ready < 0)
-			throw std::runtime_error("Server::main_loop() poll");
-		if (poll_ready == 0)
-			continue ;
-		for (size_t i = 0; i < this->_fds.size(); i++)
-		{
-			if (!(this->_fds[i].revents))
-				continue;
-			if (is_socketfd(this->_fds[i].fd) && this->_fds[i].revents & POLLIN) // is socket fds
-				this->accept_connection(this->_fds[i].fd);
-			else if (this->_fds[i].revents & POLLIN)
-				this->handle_pollin(this->_fds[i]);
-			else if (this->_fds[i].revents & POLLOUT)
-				this->handle_pollout(this->_fds[i]);
-		}
-	}
-}
-*/
+// 	it = this->_sockets.begin();
+// 	for (; it != this->_sockets.end(); it++)
+// 		this->insert_fd_to_fds(it->get_socketfd(), POLLIN);
+// 	while (1)
+// 	{
+// 		poll_ready = poll(this->_fds.data(), this->_fds.size(), 1000);
+// 		if (poll_ready < 0)
+// 			throw std::runtime_error("Server::main_loop() poll");
+// 		std::cout << "loop" << std::endl;
+// 		if (poll_ready == 0)
+// 			continue ;
+// 		for (size_t i = 0; i < this->_fds.size(); i++)
+// 		{
+// 			if (!(this->_fds[i].revents))
+// 				continue;
+// 			if (is_socketfd(this->_fds[i].fd) && this->_fds[i].revents & POLLIN) // is socket fds
+// 			{
+// 				std::cout << "this is a socketfd ready for accept" << std::endl;
+// 				this->accept_connection(this->_fds[i].fd);
+// 			}
+// 			else if (this->_fds[i].revents & POLLIN)
+// 			{
+// 				std::cout << "this is a client fd ready to be read" << std::endl;
+// 				this->handle_pollin(this->_fds[i]);
+// 			}
+// 			else if (this->_fds[i].revents & POLLOUT)
+// 			{
+// 				std::cout << "this is a client fd ready to be write" << std::endl;
+// 				this->handle_pollout(this->_fds[i]);
+// 			}
+// 		}
+// 	}
+// }
+
 
 void	Server::accept_connection_select(int fd, int* maxfd)
 {
@@ -224,7 +234,6 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 		throw std::runtime_error("Server::accept_connection_select() accept");
 	this->_logger.info("Server::accept_connection_select() accepted from " + *it);
 	fcntl(newfd, F_SETFL, O_NONBLOCK);
-	// std::cout << "newfd: " << newfd << std::endl;
 	if (*maxfd < newfd)
 		*maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);

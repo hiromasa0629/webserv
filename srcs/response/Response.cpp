@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 20:24:13 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/28 21:08:46 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	this->_uri					= this->_request.get_uri();
 	this->_host					= this->_request.get_host();
 	this->_port					= this->_request.get_port();
-	this->_request_body			= this->_request.get_body();
+	this->_body					= this->_request.get_body();
 	this->_request_body_size	= this->_request.get_body_size();
 	this->_method				= this->_request.get_method();
 	
@@ -88,11 +88,36 @@ void	Response::handle_cgi(void)
 
 void	Response::handle_upload(void)
 {
+	ResponseForm								form;
+	std::vector<ResponseFormField>				rff;
+	std::vector<ResponseFormField>::iterator	it;
+	std::ofstream								outfile;
+	std::string									tmp_path;
+	
+	form = ResponseForm(this->_body, this->_request.get_boundary());
 	this->_path.clear();
 	this->_path.append(this->_directives["upload"][0]);
+	rff = form.get_fields();
+	it = rff.begin();
+	for (; it < rff.end(); it++)
+	{
+		if (!it->get_is_file())
+			continue ;
+		tmp_path = this->_path + "/" + it->get_filename();
+		outfile.open(tmp_path, std::ofstream::out);
+		if (outfile.is_open())
+		{
+			this->_logger.warn("Outfile is opened " + std::to_string(123));
+			std::cout << "outfile opened" << std::endl;
+		}
+		outfile.write(it->get_value().c_str(), it->get_value().size());
+		outfile.close();
+	}
 	
-	this->_header.set_status(404);
-	this->handle_error();
+	this->_header.set_status(200);
+	this->_header.set_content_length(0);
+	this->_header.set_location("");
+	this->_header.construct();
 }
 
 void	Response::handle_normal(void)

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 20:34:56 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/28 17:27:33 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ Request::Request(void) {}
 
 Request::~Request(void) {}
 
-Request::Request(const std::string& req) : _is_complete(false), _method(), _logger()
+Request::Request(const std::string& req) : _is_complete(false), _method(), _content_length(0), _logger()
 {
 	(void)_method;
 
@@ -31,7 +31,7 @@ Request::Request(const std::string& req) : _is_complete(false), _method(), _logg
 		this->_is_empty_request = true;
 		return ;
 	}
-	std::cout << req << std::endl;
+	// std::cout << req << std::endl;
 	this->append(req);
 }
 
@@ -77,6 +77,8 @@ void	Request::append(const std::string& req)
 	this->_is_complete = true;
 	std::cout << "body_size: " << this->get_body_size() << std::endl;
 	std::cout << "content_length: " << this->_content_length << std::endl;
+	if (!this->_content_type.empty() && this->_content_type.front() == "multipart/form-data;")
+		this->extract_boundary();
 	if (this->get_body_size() < this->_content_length)
 		this->_is_complete = false;
 }
@@ -97,7 +99,6 @@ bool	Request::is_crlf(std::string::iterator start, std::string::iterator end) co
 		return (true);
 	return (false);
 }
-
 
 void	Request::extract_header_n_body(void)
 {
@@ -129,13 +130,15 @@ utils::StrVec	Request::save_header(std::string::iterator start, std::string::ite
 		if ((*start == '\r' && (start + 1) != end && *(start + 1) == '\n'))
 		{
 			start += 1;
-			res.push_back(tmp);
+			if (!tmp.empty())
+				res.push_back(tmp);
 			tmp.clear();
 		}
 		else
 			tmp.push_back(*start);
 	}
-	res.push_back(tmp);
+	if (!tmp.empty())
+		res.push_back(tmp);
 	return (res);
 }
 
@@ -171,7 +174,19 @@ void	Request::extract_header_info(void)
 		}
 		if (split[0] == "Content-Length:")
 			this->_content_length = std::atoi(split[1].c_str());
+		if (split[0] == "Content-Type:")
+			this->_content_type = utils::StrVec(split.begin() + 1, split.end());
 	}
+}
+
+void	Request::extract_boundary(void)
+{
+	int	equal_index;
+	
+	equal_index = this->_content_type[1].find_first_of('=');
+	// std::cout << this->_content_type[1] << std::endl;
+	// std::cout << "equal_index: " << equal_index << std::endl;
+	this->_boundary = this->_content_type[1].substr(equal_index + 1, this->_content_type[1].size());
 }
 
 std::string	Request::get_method(void) const
@@ -209,4 +224,8 @@ bool	Request::get_is_empty_request(void) const
 	return (this->_is_empty_request);
 }
 
+std::string	Request::get_boundary(void) const
+{
+	return (this->_boundary);
+}
 
