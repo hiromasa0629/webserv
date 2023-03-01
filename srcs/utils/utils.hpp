@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 13:22:57 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/27 14:59:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,9 @@
 # include <vector>
 # include <map>
 # include <sstream>
+# include <sys/poll.h>
+
+# define BUFFER_SIZE	1024
 
 namespace utils {
 
@@ -25,7 +28,8 @@ const std::string	default_server_directives[] = {"listen",
 													"error_page",
 													"index",
 													"server_name",
-													"cgi"};
+													"cgi",
+													"upload"};
 
 const std::string	default_location_directives[] = {"return",
 														"root",
@@ -34,7 +38,7 @@ const std::string	default_location_directives[] = {"return",
 														"index",
 														"client_max_body_size",
 														"cgi",
-														"upload_store"};
+														"upload"};
 
 typedef std::vector<char>						CharVec;
 typedef std::vector<std::string>				StrVec;
@@ -46,8 +50,12 @@ bool									is_empty_string(const std::string& s);
 StrVec									ft_split(const std::string& s);
 bool									is_valid_server_directives(std::string s);
 bool									is_valid_location_directives(std::string s);
+void									charvec_shrink_to_fit(CharVec& cv);
 
 }
+
+bool			operator==(const struct pollfd& lhs, const struct pollfd& rhs);
+std::ostream&	operator<<(std::ostream& o, const utils::CharVec cv);
 
 #endif
 

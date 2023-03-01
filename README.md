@@ -202,3 +202,23 @@ Content-Length: 23\r\n
 username=johndoe&password=secret\r\n
 \r\n
 ```
+example of form data. Each line ends with crlf
+```
+------WebKitFormBoundaryEzYoUBJs8wtxsDPZ
+Content-Disposition: form-data; name="file"; filename="helloworld.jpeg"
+Content-Type: image/jpeg
+
+hello world
+
+------WebKitFormBoundaryEzYoUBJs8wtxsDPZ--
+
+body_size: 7
+
+------WebKitFormBoundaryEzYoUBJs8wtxsDPZ
+Content-Disposition: form-data; name="file"; filename="helloworld.jpeg"
+Content-Type: image/jpeg
+
+hello world
+
+------WebKitFormBoundaryEzYoUBJs8wtxsDPZ--
+```

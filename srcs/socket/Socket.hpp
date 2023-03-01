@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:45 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 16:31:00 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/18 16:49:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,10 +40,11 @@ class Socket {
 		Socket(const Socket &src);
 		Socket	&operator=(const Socket &rhs);
 
-		int				get_socketfd(void) const;
-		std::string		get_ip(void) const;
-		std::string		get_port(void) const;
-		addrinfo_t*		get_addrinfo(void) const;
+		int					get_socketfd(void) const;
+		std::string			get_ip(void) const;
+		std::string			get_port(void) const;
+		addrinfo_t*			get_addrinfo(void) const;
+		const ServerConfig&	get_sconfig(void) const;
 		
 	private:
 		void		init_addrinfo(const addrinfo_t& hint);

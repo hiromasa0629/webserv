@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 17:12:07 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/01 17:14:25 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,10 +18,10 @@
 # include "Logger.hpp"
 # include <sys/select.h>
 # include "Request.hpp"
+# include "Response.hpp"
 
-# define TIMEOUT_SEC	0
-# define TIMEOUT_USEC	100000
-# define BUFFER_SIZE	1024
+# define TIMEOUT_SEC	1
+# define TIMEOUT_USEC	0
 
 class Request;
 
@@ -44,17 +44,18 @@ class Server {
 		void	init_listen(void);
 		void	insert_fd_to_fds(int fd, short event);
 		
-		void	main_loop(void);
-		void	accept_connection(int fd);
-		void	handle_pollin(const pollfd_t& pollfd);
-		void	handle_pollout(const pollfd_t& pollfd);
+		// poll()
+		// void	main_loop(void);
+		// void	accept_connection(int fd);
+		// void	handle_pollin(const pollfd_t& pollfd);
+		// void	handle_pollout(const pollfd_t& pollfd);
 		
 		void	main_loop_select(void);
 		void	accept_connection_select(int fd, int* maxfd);
 		void	handle_pollin_select(int fd);
 		void	handle_pollout_select(int fd);
 		
-		std::vector<char>	read_request_header(int fd);
+		std::string			read_request(int fd);
 		bool				is_socketfd(int fd) const;
 		
 		std::vector<Socket>::iterator	get_socket_from_fd(int fd);
@@ -62,12 +63,13 @@ class Server {
 		std::vector<pollfd_t>		_fds; // poll()
 		std::vector<Socket>			_sockets;
 		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
+		std::map<int, ServerConfig>	_fd_sconfig;
 		std::map<int, Request>		_fd_requests;
 		static const char*			_example_res;
 		timeval_t					_timeval;
 		Logger						_logger;
+		bool						_is_server_error;
+		
 };
-
-bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs);
 
 #endif

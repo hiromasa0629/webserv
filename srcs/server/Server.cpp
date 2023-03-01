@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 21:31:11 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/01 23:32:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ Server::Server(void)
 	this->_timeval.tv_usec = TIMEOUT_USEC;
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config) : _logger()
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config) : _logger(), _is_server_error(false)
 {
 	Config::StrToSConfigMap::const_iterator	it;
 	Socket									tmp;
@@ -32,8 +32,8 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 	this->_timeval.tv_sec = TIMEOUT_SEC;
 	this->_timeval.tv_usec = TIMEOUT_USEC;
 
-	it = config.get_config().begin();
-	for (size_t i = 0; it != config.get_config().end(); it++, i++)
+	it = config.get_sconfig().begin();
+	for (size_t i = 0; it != config.get_sconfig().end(); it++, i++)
 	{
 		tmp = Socket(ai_flags, ai_family, ai_socktype, ai_protocol, it->second);
 		this->_sockets.push_back(tmp);
@@ -45,7 +45,7 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.error<std::string>(e.what());
+		this->_logger.error(e.what());
 		std::exit(errno);
 	}
 	
@@ -73,7 +73,7 @@ void	Server::run(void)
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.error<std::string>(e.what());
+		this->_logger.error(e.what());
 		std::exit(errno);
 	}
 }
@@ -100,7 +100,7 @@ void	Server::init_bind(void)
 	{
 		if (bind(it->get_socketfd(), it->get_addrinfo()->ai_addr, it->get_addrinfo()->ai_addrlen) < 0)
 			throw std::runtime_error("Server::init_bind() " + *it);
-		this->_logger.info<std::string>("Server::init_bind() " + *it);
+		this->_logger.info("Server::init_bind() " + *it);
 	}
 }
 
@@ -113,7 +113,7 @@ void	Server::init_listen(void)
 	{
 		if (listen(it->get_socketfd(),SOMAXCONN) < 0)
 			throw std::runtime_error("Server::init_listen() " + *it);
-		this->_logger.info<std::string>("Server::init_listen() Listening... " + *it);
+		this->_logger.info("Server::init_listen() Listening... " + *it);
 	}
 }
 
@@ -128,86 +128,100 @@ void	Server::insert_fd_to_fds(int fd, short event)
 	
 }
 
-std::vector<char>	Server::read_request_header(int fd)
+std::string			Server::read_request(int fd)
 {
-	std::vector<char>	buf(BUFFER_SIZE);
-	std::vector<char>	res;
+	char				buf[BUFFER_SIZE];
+	std::string			res;
 	int					ret;
 	
-	ret = recv(fd, buf.data(), BUFFER_SIZE, 0);
+	ret = recv(fd, buf, BUFFER_SIZE, 0);
 	while (ret > 0)
 	{
-        res.insert(res.end(), buf.begin(), buf.begin() + ret);
-		buf.clear();
-		buf.resize(BUFFER_SIZE);
+		for (int i = 0; i < ret; i++)
+			res.push_back(buf[i]);
 		if (ret < BUFFER_SIZE)
 			break ;
-		ret = recv(fd, buf.data(), BUFFER_SIZE, 0);
+		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
 	if (ret == -1)
 		throw std::runtime_error("Recv()");
+	// for (size_t i = 0; i < res.size(); i++)
+	// 	std::cout << res[i];
+	// std::cout << std::endl;
 	return (res);
 }
 
-void	Server::accept_connection(int fd)
-{
-	int								newfd;
-	std::vector<Socket>::iterator	it;
+// // poll()
+// void	Server::accept_connection(int fd)
+// {
+// 	int								newfd;
+// 	std::vector<Socket>::iterator	it;
 	
-	if ((it = this->get_socket_from_fd(fd)) == this->_sockets.end())
-		throw std::runtime_error("Server::accept_connection() Missing socketfd");
-	if ((newfd = accept(it->get_socketfd(), it->get_addrinfo()->ai_addr, &(it->get_addrinfo()->ai_addrlen))) < 0)
-		throw std::runtime_error("Server::accept_connection() accept");
-	this->_logger.info<std::string>("Server::accept_connection() accepted from " + *it);
-	fcntl(newfd, F_SETFL, O_NONBLOCK);
-	this->insert_fd_to_fds(newfd, POLLIN);
-}
+// 	if ((it = this->get_socket_from_fd(fd)) == this->_sockets.end())
+// 		throw std::runtime_error("Server::accept_connection() Missing socketfd");
+// 	if ((newfd = accept(it->get_socketfd(), it->get_addrinfo()->ai_addr, &(it->get_addrinfo()->ai_addrlen))) < 0)
+// 		throw std::runtime_error("Server::accept_connection() accept");
+// 	this->_logger.info<std::string>("Server::accept_connection() accepted from " + *it);
+// 	fcntl(newfd, F_SETFL, O_NONBLOCK);
+// 	this->insert_fd_to_fds(newfd, POLLIN);
+// }
 
-void	Server::handle_pollin(const pollfd_t& pfd)
-{
-	this->_logger.info<std::string>("POLLIN");
-	read_request_header(pfd.fd);
-	this->insert_fd_to_fds(pfd.fd, POLLOUT);
-	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
+// void	Server::handle_pollin(const pollfd_t& pfd)
+// {
+// 	this->_logger.info<std::string>("POLLIN");
+// 	read_request(pfd.fd);
+// 	this->insert_fd_to_fds(pfd.fd, POLLOUT);
+// 	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
 	
-}
+// }
 
-void	Server::handle_pollout(const pollfd_t& pfd)
-{
-	this->_logger.info<std::string>("POLLOUT");
-	send(pfd.fd, _example_res, std::strlen(_example_res), 0);
-	close(pfd.fd);
-	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
-}
+// void	Server::handle_pollout(const pollfd_t& pfd)
+// {
+// 	this->_logger.info<std::string>("POLLOUT");
+// 	send(pfd.fd, _example_res, std::strlen(_example_res), 0);
+// 	close(pfd.fd);
+// 	this->_fds.erase(std::find(this->_fds.begin(), this->_fds.end(), pfd));
+// }
 
-void	Server::main_loop(void)
-{
-	int poll_ready;
-	std::vector<Socket>::iterator	it;
+// void	Server::main_loop(void)
+// {
+// 	int poll_ready;
+// 	std::vector<Socket>::iterator	it;
 	
-	it = this->_sockets.begin();
-	for (; it != this->_sockets.end(); it++)
-		this->insert_fd_to_fds(it->get_socketfd(), POLLIN);
-	while (1)
-	{
-		poll_ready = poll(this->_fds.data(), this->_fds.size(), 100);
-		if (poll_ready < 0)
-			throw std::runtime_error("Server::main_loop() poll");
-		if (poll_ready == 0)
-			continue ;
-		for (size_t i = 0; i < this->_fds.size(); i++)
-		{
-			if (!(this->_fds[i].revents))
-				continue;
-			if (is_socketfd(this->_fds[i].fd) && this->_fds[i].revents & POLLIN) // is socket fds
-				this->accept_connection(this->_fds[i].fd);
-			else if (this->_fds[i].revents & POLLIN)
-				this->handle_pollin(this->_fds[i]);
-			else if (this->_fds[i].revents & POLLOUT)
-				this->handle_pollout(this->_fds[i]);
-		}
-	}
-}
+// 	it = this->_sockets.begin();
+// 	for (; it != this->_sockets.end(); it++)
+// 		this->insert_fd_to_fds(it->get_socketfd(), POLLIN);
+// 	while (1)
+// 	{
+// 		poll_ready = poll(this->_fds.data(), this->_fds.size(), 1000);
+// 		if (poll_ready < 0)
+// 			throw std::runtime_error("Server::main_loop() poll");
+// 		std::cout << "loop" << std::endl;
+// 		if (poll_ready == 0)
+// 			continue ;
+// 		for (size_t i = 0; i < this->_fds.size(); i++)
+// 		{
+// 			if (!(this->_fds[i].revents))
+// 				continue;
+// 			if (is_socketfd(this->_fds[i].fd) && this->_fds[i].revents & POLLIN) // is socket fds
+// 			{
+// 				std::cout << "this is a socketfd ready for accept" << std::endl;
+// 				this->accept_connection(this->_fds[i].fd);
+// 			}
+// 			else if (this->_fds[i].revents & POLLIN)
+// 			{
+// 				std::cout << "this is a client fd ready to be read" << std::endl;
+// 				this->handle_pollin(this->_fds[i]);
+// 			}
+// 			else if (this->_fds[i].revents & POLLOUT)
+// 			{
+// 				std::cout << "this is a client fd ready to be write" << std::endl;
+// 				this->handle_pollout(this->_fds[i]);
+// 			}
+// 		}
+// 	}
+// }
+
 
 void	Server::accept_connection_select(int fd, int* maxfd)
 {
@@ -218,43 +232,98 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 		throw std::runtime_error("Server::accept_connection_select() Missing socketfd");
 	if ((newfd = accept(it->get_socketfd(), it->get_addrinfo()->ai_addr, &(it->get_addrinfo()->ai_addrlen))) < 0)
 		throw std::runtime_error("Server::accept_connection_select() accept");
-	this->_logger.info<std::string>("Server::accept_connection_select() accepted from " + *it);
+	this->_logger.info("Server::accept_connection_select() accepted from " + *it);
 	fcntl(newfd, F_SETFL, O_NONBLOCK);
 	if (*maxfd < newfd)
 		*maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);
+	it = this->_sockets.begin();
+	for (; it != this->_sockets.end(); it++)
+		if (it->get_socketfd() == fd)
+			this->_fd_sconfig.insert(std::make_pair(newfd, it->get_sconfig()));
 }
 
 void	Server::handle_pollin_select(int fd)
 {
-	this->_logger.info<std::string>("POLLIN (select)");
+	this->_logger.info("POLLIN (select)");
 	
 	Request								req;
 	std::map<int, Request>::iterator	it;
 	
-	if ((it = this->_fd_requests.find(fd)) != this->_fd_requests.end())
+	try
 	{
-		it->second.append(read_request_header(fd));
-		req = it->second;
+		if ((it = this->_fd_requests.find(fd)) != this->_fd_requests.end())
+		{
+			it->second.append(this->read_request(fd));
+			req = it->second;
+		}
+		else
+		{
+			req = Request(this->read_request(fd));
+			this->_fd_requests.insert(std::make_pair(fd, req));
+		}
+		if (!req.get_is_complete() && !req.get_is_client_side_error())
+		{
+			std::cout << "NOT COMPLETE" << std::endl;
+			return ;
+		}
+		if (req.get_is_client_side_error())
+			this->_logger.warn("431 Client Side Error");
+		req.print_request_header();
+		FD_CLR(fd, &this->_fd_sets.first);
+		FD_SET(fd, &this->_fd_sets.second);
 	}
-	else
+	catch (const std::exception& e)
 	{
-		req = Request(read_request_header(fd));
-		this->_fd_requests.insert(std::make_pair(fd, req));
+
+		this->_logger.warn("500 Internal Server Error (Pollin) " + std::string(e.what()));
+		this->_is_server_error = true;
+		FD_CLR(fd, &this->_fd_sets.first);
+		FD_SET(fd, &this->_fd_sets.second);
 	}
-	if (!req.get_is_complete())
-		return ;
-	req.print_request_header();
-	FD_CLR(fd, &this->_fd_sets.first);
-	FD_SET(fd, &this->_fd_sets.second);
 }
 
 void	Server::handle_pollout_select(int fd)
 {
-	this->_logger.info<std::string>("POLLOUT (select)");
-	send(fd, _example_res, std::strlen(_example_res), 0);
-	if (close(fd) != 0)
-		throw std::runtime_error("Pollout select close");
+	this->_logger.info("POLLOUT (select)");
+	
+	Response		responds;
+	std::string		body;
+	std::string		header;
+	std::string		res;
+	
+	// std::cout << "pollout fd: " << fd << std::endl;
+	try
+	{
+		if (this->_is_server_error)
+			throw std::runtime_error("500 Internal Server Error (Pollout from Pollin)");
+		else if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
+			throw std::runtime_error("431 Client Side Error (Pollout from Pollin)");
+		if (!this->_fd_requests.find(fd)->second.get_is_empty_request())
+		{
+			responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
+			header = responds.get_response_header();
+			body = responds.get_body();
+			res.append(header).append(body);
+			send(fd, res.c_str(), res.size(), 0);
+		}
+		if (close(fd) != 0)
+			throw std::runtime_error("Pollout select close");
+	}
+	catch (const std::exception& e)
+	{
+		this->_logger.warn(e.what());
+		if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
+			responds = Response(431, this->_fd_sconfig.find(fd)->second);
+		else
+			responds = Response(500, this->_fd_sconfig.find(fd)->second);
+		header = responds.get_response_header();
+		body = responds.get_body();
+		res.append(header).append(body);
+		send(fd, res.c_str(), res.size(), 0);
+		if (close(fd) != 0)
+			throw std::runtime_error("Pollout select close");
+	}
 	FD_CLR(fd, &this->_fd_sets.second);
 	this->_fd_requests.erase(fd);
 }
@@ -331,8 +400,3 @@ std::vector<Socket>::iterator	Server::get_socket_from_fd(int fd)
 /***********************************
  *  Non member function
 ***********************************/
-
-bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs)
-{
-	return (lhs.fd == rhs.fd && lhs.events == rhs.events && lhs.revents == rhs.revents);
-}

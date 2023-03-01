@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/15 15:44:36 by hyap             ###   ########.fr       */
+/*   Updated: 2023/02/19 17:08:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,8 +79,9 @@ void	Config::parse_config(void)
 			else
 				end = this->_conf.begin() + i - 1;
 			tmp_sconfig = ServerConfig(start, end);
-			// If server_name has not existed yet
-			if (this->_sconfig.find(tmp_sconfig.get_directives("server_name")[0]) == this->_sconfig.end())
+			// If server_name and host:port has not existed yet
+			if (this->_sconfig.find(tmp_sconfig.get_directives("server_name")[0]) == this->_sconfig.end() &&
+					this->find_sconfig_by_host_port(tmp_sconfig.get_directives("listen")[0], tmp_sconfig.get_directives("listen")[1]) == this->_sconfig.end())
 				this->_sconfig.insert(std::make_pair(tmp_sconfig.get_directives("server_name")[0], tmp_sconfig));
 		}
 		else
@@ -100,9 +101,26 @@ void	Config::print_config(void)
 	}
 }
 
-const Config::StrToSConfigMap&	Config::get_config(void) const
+const Config::StrToSConfigMap&	Config::get_sconfig(void) const
 {
 	return (this->_sconfig);
+}
+
+Config::StrToSConfigMap::const_iterator	Config::find_sconfig_by_host_port(const std::string& newhost, const std::string& newport) const
+{
+	StrToSConfigMap::const_iterator	it;
+	std::string						host;
+	std::string						port;
+	
+	it = this->_sconfig.begin();
+	for (; it != this->_sconfig.end(); it++)
+	{
+		host = it->second.get_directives("listen")[0];
+		port = it->second.get_directives("listen")[1];
+		if (host == newhost && port == newport)
+			return (it);
+	}
+	return (this->_sconfig.end());
 }
 
 /***********************************
@@ -112,6 +130,49 @@ const Config::StrToSConfigMap&	Config::get_config(void) const
 Config::~Config(void)
 {
 
+}
+
+/***********************************
+ *  BlockConfig
+***********************************/
+
+BlockConfig::BlockConfig(void) {}
+
+BlockConfig::~BlockConfig(void) {}
+
+void	BlockConfig::print_directives(void)
+{
+	utils::StrToStrVecMap::iterator	it;
+
+	it = this->_directives.begin();
+	while (it != this->_directives.end())
+	{
+		std::cout << "\t" << CYAN << it->first << " " << RESET;
+		for (size_t i = 0; i < it->second.size(); i++)
+			std::cout << (it->second)[i] << " ";
+		std::cout << std::endl;
+		it++;
+	}
+}
+
+const utils::StrVec&	BlockConfig::get_directives(std::string key) const
+{
+	return (this->_directives.find(key)->second);
+}
+
+const utils::StrToStrVecMap&	BlockConfig::get_directives(void) const
+{
+	return (this->_directives);
+}
+
+void	BlockConfig::set_directives(const std::string& s)
+{
+	(void)s;
+}
+
+ConfigType	BlockConfig::get_type(void) const
+{
+	return (this->_type);
 }
 
 /***********************************
@@ -153,6 +214,7 @@ ServerConfig::ServerConfig(utils::StrVec::iterator start, utils::StrVec::iterato
 		throw std::runtime_error("Missing required directives in server block");
 	if (this->_directives.find("server_name") == this->_directives.end())
 		this->_directives["server_name"] = utils::StrVec(1, "_");
+	this->_type = SERVER;
 }
 
 void	ServerConfig::set_directives(const std::string& s)
@@ -205,16 +267,16 @@ void	ServerConfig::print_directives(void)
 	}
 }
 
-utils::StrVec	ServerConfig::get_directives(std::string key) const
-{
-	return (this->_directives.find(key)->second);
-}
-
 bool	ServerConfig::has_required_directives(void) const
 {
 	if (this->_directives.find("listen") == this->_directives.end() || this->_directives.find("root") == this->_directives.end())
 		return (false);
 	return (true);
+}
+
+const ServerConfig::StrToLConfigMap&	ServerConfig::get_lconfig(void) const
+{
+	return (this->_lconfig);
 }
 
 /***********************************
@@ -227,6 +289,7 @@ LocationConfig::~LocationConfig(void) {}
 
 LocationConfig::LocationConfig(utils::StrVec::iterator start, utils::StrVec::iterator end)
 {
+	this->_type = LOCATION;
 	while (start < end)
 	{
 		this->set_directives(*start);
@@ -245,24 +308,4 @@ void	LocationConfig::set_directives(const std::string& s)
 		throw std::runtime_error("\"" + key + "\" invalid location directive");
 	split.erase(split.begin());
 	this->_directives[key] = split;
-}
-
-void	LocationConfig::print_directives(void)
-{
-	utils::StrToStrVecMap::iterator	it;
-
-	it = this->_directives.begin();
-	while (it != this->_directives.end())
-	{
-		std::cout << "\t" << CYAN << it->first << " " << RESET;
-		for (size_t i = 0; i < it->second.size(); i++)
-			std::cout << (it->second)[i] << " ";
-		std::cout << std::endl;
-		it++;
-	}
-}
-
-utils::StrVec	LocationConfig::get_directives(std::string key) const
-{
-	return (this->_directives.find(key)->second);
 }
