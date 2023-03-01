@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/28 21:08:46 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/01 23:27:42 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,7 +30,6 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	this->_body					= this->_request.get_body();
 	this->_request_body_size	= this->_request.get_body_size();
 	this->_method				= this->_request.get_method();
-	
 	
 	this->set_directives(sconfig);
 	this->set_path();
@@ -59,6 +58,13 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	this->_logger.debug(this->_path);
 }
 
+Response::Response(int error_code, const ServerConfig& sconfig)
+{	
+	this->set_directives(sconfig);
+	this->_header.set_status(error_code);
+	this->handle_error();
+}
+
 void	Response::handle_error(void)
 {
 	utils::StrVec	vec;
@@ -75,7 +81,6 @@ void	Response::handle_error(void)
 		if (std::atoi(vec[i++].c_str()) == this->_header.get_status())
 			this->_path.append(root).append(vec[i]);
 	this->read_path();
-	
 	this->_header.set_location("");
 	this->_header.set_content_length(this->_body.size());
 	this->_header.construct();
@@ -125,11 +130,12 @@ void	Response::handle_normal(void)
 	std::ifstream	infile;
 	std::string		line;
 	
+	this->_header.set_status(200);
+	
 	this->read_path();
 	
 	this->_header.set_content_length(this->_body.size());
 	this->_header.set_location("");
-	this->_header.set_status(200);
 	this->_header.construct();
 }
 
@@ -202,6 +208,13 @@ bool	Response::has_handled_error(void)
 	std::ifstream					infile;
 	
 	// check server_names
+	if (this->_uri.empty())
+	{
+		this->_header.set_status(500);
+		this->_logger.warn("Empty uri for response");
+		return (true);
+	}
+	
 	it = this->_directives.find("server_name");
 	if (it != this->_directives.end() && !std::count(sv.begin(), sv.end(), "_") && !std::count(sv.begin(), sv.end(), this->_host) && !this->is_localhost())
 	{
@@ -254,6 +267,9 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	utils::StrToStrVecMap::const_iterator			it2;
 	
 	this->_s_directives = sconfig.get_directives();
+	this->_directives = this->_s_directives;
+	if (this->_uri.empty())
+		return ;
 	second_slash_index = std::string(this->_uri.begin() + 1, this->_uri.end()).find_first_of('/');
 	if (second_slash_index != std::string::npos)
 		location = this->_uri.substr(0, second_slash_index + 1);
@@ -261,7 +277,6 @@ void	Response::set_directives(const ServerConfig& sconfig)
 		location = this->_uri;
 	if ((it = sconfig.get_lconfig().find(location)) != sconfig.get_lconfig().end())
 		this->_l_directives = it->second.get_directives();
-	this->_directives = this->_s_directives;
 	it2 = this->_l_directives.begin();
 	for (; it2 != this->_l_directives.end(); it2++)
 		this->_directives[it2->first] = it2->second;
@@ -354,6 +369,8 @@ void	Response::read_path(void)
 		if (!infile.good())
 		{
 			this->_logger.warn("_path opened failed, defaulted to 404.html");
+			if (!this->_header.get_status())
+				this->_header.set_status(404);
 			infile.open("files/error/404.html");
 		}
 	}

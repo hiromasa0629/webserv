@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:29 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/28 15:39:53 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/01 23:27:44 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ class Request {
 		int							get_body_size(void) const;
 		bool						get_is_empty_request(void) const;
 		std::string					get_boundary(void) const;
+		bool						get_is_client_side_error(void) const;
 		
 	private:
 		void						check_full_request_header(void);
@@ -42,6 +43,7 @@ class Request {
 		std::string					save_body(std::string::iterator start, std::string::iterator end);
 		void						extract_header_info(void);
 		void						extract_boundary(void);
+		bool						is_client_side_error(void) const;
 		
 		
 		std::string					_req;
@@ -58,6 +60,7 @@ class Request {
 		
 		Logger						_logger;
 		bool						_is_empty_request;
+		bool						_is_client_side_error;
 };
 
 

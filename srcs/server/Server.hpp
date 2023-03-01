@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/28 14:24:35 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/01 17:14:25 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,6 +68,8 @@ class Server {
 		static const char*			_example_res;
 		timeval_t					_timeval;
 		Logger						_logger;
+		bool						_is_server_error;
+		
 };
 
 #endif

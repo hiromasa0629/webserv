@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/28 15:20:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/01 23:27:58 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,7 @@ class Response {
 	public:
 		Response(void);
 		Response(const Request& request, const ServerConfig& sconfig);
+		Response(int error_code, const ServerConfig& sconfig);
 		~Response(void);
 		
 		std::string				get_response_header(void) const;
