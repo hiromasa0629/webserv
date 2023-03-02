@@ -6,11 +6,12 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/01 23:32:04 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/02 16:33:41 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
+#include <cstring>
 
 const char* Server::_example_res = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 44\n\n<link rel=\"icon\" href=\"data:,\">\nHello world!";
 
@@ -45,7 +46,7 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.error(e.what());
+		this->_logger.error(std::string(strerror(errno)) + " " + e.what());
 		std::exit(errno);
 	}
 	
@@ -121,7 +122,7 @@ void	Server::insert_fd_to_fds(int fd, short event)
 {
 	pollfd_t	tmp;
 	
-	std::memset(&tmp, 0, sizeof(tmp));
+
 	tmp.fd = fd;
 	tmp.events = event;
 	this->_fds.push_back(tmp);
@@ -139,15 +140,24 @@ std::string			Server::read_request(int fd)
 	{
 		for (int i = 0; i < ret; i++)
 			res.push_back(buf[i]);
+		
+#if DEBUG
+		std::cout << "ret: " << ret << ", size: " << res.size() << std::endl;
+#endif
 		if (ret < BUFFER_SIZE)
 			break ;
 		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
 	if (ret == -1)
 		throw std::runtime_error("Recv()");
+#if DEBUG
 	// for (size_t i = 0; i < res.size(); i++)
 	// 	std::cout << res[i];
-	// std::cout << std::endl;
+	std::cout << res << std::endl;
+	std::cout << std::endl;
+	std::cout << "last 4: " << (int)res[res.size() - 4] << " " << (int)res[res.size() - 3] << " " << (int)res[res.size() - 2] << " " << (int)res[res.size() - 1] << std::endl;
+	std::cout << "last 1: " << (int)res[res.size()] << std::endl; 
+#endif
 	return (res);
 }
 
@@ -264,7 +274,9 @@ void	Server::handle_pollin_select(int fd)
 		}
 		if (!req.get_is_complete() && !req.get_is_client_side_error())
 		{
+#if DEBUG
 			std::cout << "NOT COMPLETE" << std::endl;
+#endif
 			return ;
 		}
 		if (req.get_is_client_side_error())
@@ -312,7 +324,8 @@ void	Server::handle_pollout_select(int fd)
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.warn(e.what());
+		this->_logger.warn("WTF " + std::string(e.what()));
+		this->_logger.warn(strerror(errno));
 		if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
 			responds = Response(431, this->_fd_sconfig.find(fd)->second);
 		else

@@ -6,7 +6,7 @@
 #    By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/02/04 01:21:04 by hyap              #+#    #+#              #
-#    Updated: 2023/02/25 16:14:03 by hyap             ###   ########.fr        #
+#    Updated: 2023/03/02 12:13:17 by hyap             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -36,10 +36,14 @@ INCLUDES	= -Isrcs/utils \
 LDFLAGS		= -g -lstdc++ -fsanitize=address
 
 TESTFILE	= tests/test.conf
+BANANE		= tests/youpibanane.conf
 
 all: $(NAME)
 # @$(MAKE) clean
 	@./main $(TESTFILE)
+	
+test: $(NAME)
+	@./main $(BANANE)
 
 $(NAME): $(OBJS)
 	$(CC) $(LDFLAGS) $^ -o $(NAME)

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/01 23:27:42 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/02 15:04:15 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,21 +41,60 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	if (this->_directives.find("upload") != this->_directives.end() && this->_method == "POST")
 		this->_is_upload = true;
 
+	// std::cout << "here4" << std::endl;
+	// std::cout << std::boolalpha;
+	// std::cout << "has handled error : " << has_handled_error() << std::endl;
+	// std::cout << "is cgi : " << is_cgi() << std::endl;
+	// std::cout << "is_redirection : " << _is_redirection << std::endl;
+	// std::cout << "_is_autoindex : " << _is_autoindex << std::endl;
+	// std::cout << "_is_upload : " << _is_upload << std::endl;
 	if (this->has_handled_error())
+	{
+#if DEBUG
+		this->_logger.debug("This request is an ERROR");
+#endif
 		this->handle_error();
+	}
 	else if (this->is_cgi())
+	{
+#if DEBUG
+		this->_logger.debug("This request is a CGI");
+#endif
 		this->handle_cgi();
+	}
 	else if (this->_is_redirection)
+	{
+#if DEBUG
+		this->_logger.debug("This request is a REDIRECTION");
+#endif
 		this->handle_redirect();
+	}
 	else if (this->_is_autoindex)
+	{
+#if DEBUG
+		this->_logger.debug("This request is an AUTOINDEX");
+#endif
 		this->handle_autoindex();
+	}
 	else if (this->_is_upload)
+	{
+#if DEBUG
+		this->_logger.debug("This request is an UPLOAD");
+#endif
 		this->handle_upload();
+	}
 	else
+	{
+#if DEBUG
+		this->_logger.debug("This request is NORMAL");
+#endif
 		this->handle_normal();
+	}
 
-	this->_logger.debug(this->_header.get_status());
-	this->_logger.debug(this->_path);
+	std::stringstream	ss;
+	
+	ss << this->_header.get_status() << " " << this->_path;
+	this->_logger.info(ss.str());
 }
 
 Response::Response(int error_code, const ServerConfig& sconfig)
@@ -63,12 +102,17 @@ Response::Response(int error_code, const ServerConfig& sconfig)
 	this->set_directives(sconfig);
 	this->_header.set_status(error_code);
 	this->handle_error();
+	
+	std::stringstream	ss;
+
+	ss << this->_header.get_status() << " " << this->_path;
+	this->_logger.info(ss.str());
 }
 
 void	Response::handle_error(void)
 {
 	utils::StrVec	vec;
-	std::string		root;	
+	std::string		root;
 	
 	if (this->_directives.find("error_page") == this->_directives.end())
 		return ;
@@ -110,11 +154,11 @@ void	Response::handle_upload(void)
 			continue ;
 		tmp_path = this->_path + "/" + it->get_filename();
 		outfile.open(tmp_path, std::ofstream::out);
-		if (outfile.is_open())
-		{
-			this->_logger.warn("Outfile is opened " + std::to_string(123));
-			std::cout << "outfile opened" << std::endl;
-		}
+		// if (outfile.is_open())
+		// {
+		// 	this->_logger.warn("Outfile is opened " + std::to_string(123));
+		// 	std::cout << "outfile opened" << std::endl;
+		// }
 		outfile.write(it->get_value().c_str(), it->get_value().size());
 		outfile.close();
 	}
@@ -129,7 +173,6 @@ void	Response::handle_normal(void)
 {
 	std::ifstream	infile;
 	std::string		line;
-	
 	this->_header.set_status(200);
 	
 	this->read_path();
@@ -214,7 +257,6 @@ bool	Response::has_handled_error(void)
 		this->_logger.warn("Empty uri for response");
 		return (true);
 	}
-	
 	it = this->_directives.find("server_name");
 	if (it != this->_directives.end() && !std::count(sv.begin(), sv.end(), "_") && !std::count(sv.begin(), sv.end(), this->_host) && !this->is_localhost())
 	{
@@ -242,7 +284,6 @@ bool	Response::has_handled_error(void)
 	// try open path if not (autoindex and redirection)
 	if (this->_is_autoindex || this->_is_redirection || this->_method != "GET")
 		return (false);
-	
 	infile.open(this->_path);
 	if (!infile.good())
 	{
@@ -254,7 +295,9 @@ bool	Response::has_handled_error(void)
 			return (true);
 		}
 	}
-	// this->_logger.debug("Passed error handle");
+#if DEBUG
+	this->_logger.debug("Passed error handle");
+#endif
 	return (false);
 }
 
@@ -320,6 +363,8 @@ void	Response::set_path(void)
 
 bool	Response::is_cgi(void)
 {
+	if (this->_path.length() < 3)
+		return (false);
 	if (this->_path.substr(this->_path.length() - 3, this->_path.length()) == ".py")
 		return (true);
 	return (false);
@@ -368,9 +413,11 @@ void	Response::read_path(void)
 		infile.open(this->_path.append(".html"));
 		if (!infile.good())
 		{
-			this->_logger.warn("_path opened failed, defaulted to 404.html");
 			if (!this->_header.get_status())
+			{
+				this->_logger.warn("_path opened failed, defaulted to 404.html");
 				this->_header.set_status(404);
+			}
 			infile.open("files/error/404.html");
 		}
 	}

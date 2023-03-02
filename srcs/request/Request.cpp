@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/01 23:32:34 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/02 13:50:42 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,6 +45,7 @@ void	Request::print_request_header(void) const
 	std::stringstream	ss;
 	// if (!this->_is_complete)
 	// 	throw std::runtime_error("Request is not completely read yet");
+#if DEBUG
 	this->_logger.debug("Method: " + this->_method);
 	this->_logger.debug("URI: " + this->_uri);
 	this->_logger.debug("Host: " + this->_host);
@@ -58,6 +59,9 @@ void	Request::print_request_header(void) const
 		this->_logger.debug(ss.str());
 		ss.str("");
 	}
+#else
+	this->_logger.info(this->_method + " " + this->_uri + " " + this->_host + ":" + this->_port);
+#endif
 	// for (size_t i = 0; i < this->_body.size(); i++)
 	// {
 	// 	utils::CharVec::const_iterator	it = this->_body[i].begin();
@@ -116,8 +120,11 @@ void	Request::extract_header_n_body(void)
 	it = this->_req.begin();
 	start = this->_req.begin();
 	
+#if DEBUG
+	std::cout << "---------------" << std::endl;
+	std::cout << this->_req << std::endl;
+#endif
 	end_of_header = this->_req.find("\r\n\r\n");
-	// std::cout << "end_of_header: " << end_of_header << std::endl;
 	if (end_of_header == std::string::npos)
 		return ;
 	it += end_of_header;

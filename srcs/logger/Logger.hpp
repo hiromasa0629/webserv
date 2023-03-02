@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 15:48:09 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/16 20:30:50 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/02 13:27:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,7 @@ class Logger{
 		template < class T > 
 		void error(const T& msg) const {
 			if (_log_stream == &std::cout)
-				std::cerr << "[Error] " << msg << std::endl;
+				std::cerr << BOLD << RED << "[Error] " << RESET << msg << std::endl;
 			else
 				(*_log_stream) << BOLD << RED <<  "[Error] " << RESET << msg << std::endl;
 		}
