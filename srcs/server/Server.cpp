@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/02 16:33:41 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/02 17:20:20 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,26 +133,28 @@ std::string			Server::read_request(int fd)
 {
 	char				buf[BUFFER_SIZE];
 	std::string			res;
-	int					ret;
+	ssize_t				ret;
 	
+	std::memset(buf, 0, BUFFER_SIZE);
 	ret = recv(fd, buf, BUFFER_SIZE, 0);
 	while (ret > 0)
 	{
-		for (int i = 0; i < ret; i++)
+		for (ssize_t i = 0; i < ret; i++)
 			res.push_back(buf[i]);
-		
+		std::memset(buf, 0, BUFFER_SIZE);
 #if DEBUG
 		std::cout << "ret: " << ret << ", size: " << res.size() << std::endl;
 #endif
-		if (ret < BUFFER_SIZE)
-			break ;
+		// if (ret < BUFFER_SIZE)
+		// 	break ;
 		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
-	if (ret == -1)
-		throw std::runtime_error("Recv()");
+	// if (ret == -1)
+	// 	throw std::runtime_error("Recv()");
 #if DEBUG
 	// for (size_t i = 0; i < res.size(); i++)
 	// 	std::cout << res[i];
+	std::cout << "ret = " << ret << "res.size = " << res.size() << std::endl;
 	std::cout << res << std::endl;
 	std::cout << std::endl;
 	std::cout << "last 4: " << (int)res[res.size() - 4] << " " << (int)res[res.size() - 3] << " " << (int)res[res.size() - 2] << " " << (int)res[res.size() - 1] << std::endl;
@@ -372,8 +374,8 @@ void	Server::main_loop_select(void)
 		for (int i = 0; i < maxfd + 1; i++)
 		{
 			if (!FD_ISSET(i, &read_fds))
-				continue;
-			if (is_socketfd(i))
+				continue ;
+			if (this->is_socketfd(i))
 				this->accept_connection_select(i, &maxfd);
 			else
 				this->handle_pollin_select(i);
