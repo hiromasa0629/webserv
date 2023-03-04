@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:53:38 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 17:13:47 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/04 22:09:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,14 +18,37 @@
 # include "utils.hpp"
 # include <exception>
 # include <sstream>
+# include "Logger.hpp"
+
+enum RequestFields {
+	METHOD,
+	URI,
+	SERVER_NAME,
+	PORT,
+	PROTOCOL,
+	CONTENT_LENGTH,
+	CONTENT_TYPE,
+	TRANSFER_ENCODING,
+	BOUNDARY
+};
+
+enum StatusCode {
+	E400 = 400,
+	E500 = 500,
+	S200 = 200
+};
 
 class TmpRequest {
 	public:
 		TmpRequest(void);
 		~TmpRequest(void);
+		TmpRequest(enum StatusCode status);
 		
-		std::string	get_req(void) const;
-		bool		get_is_complete(void) const;
+		std::string		get_request_field(enum RequestFields name) const;
+		bool			get_is_complete(void) const;
+		enum StatusCode	get_status_code(void) const;
+		
+		void		print_request_header(void) const;
 		
 		/**
 		 * @brief append received bytes from recv() into _req.
@@ -36,14 +59,14 @@ class TmpRequest {
 		
 		class RequestErrorException : public std::exception {
 			public:
-				RequestErrorException(int line, int status, const std::string& msg);
+				RequestErrorException(int line, enum StatusCode _status, const std::string& msg);
 				virtual ~RequestErrorException(void) throw();
 				virtual const char*	what(void) const throw();
-				int					get_status(void) const throw();
+				enum StatusCode		get_status(void) const throw();
 			private:
-				int			_line;
-				int			_status;
-				std::string	_msg;
+				int				_line;
+				enum StatusCode	_status;
+				std::string		_msg;
 		};
 		
 	private:
@@ -58,11 +81,8 @@ class TmpRequest {
 		
 		/**
 		 * @brief Extract header info into _header_info
-		 * 
-		 * @return true if successful extract all necessary fileds eg. method, uri, host, protocol
-		 * @return false if one of them is missing
 		 */
-		bool			extract_header_info(void);
+		void			extract_header_info(void);
 		
 		/**
 		 * @brief Check request line if method, uri, protocol exsists and correct
@@ -126,24 +146,28 @@ class TmpRequest {
 		std::string							_chunked_body;
 		
 		/**
-		 * @brief request header
-		 */
-		std::string							_header;
-		
-		/**
 		 * @brief map of <request fields, value>
 		 */
-		std::map<std::string, std::string>	_header_info;
+		std::map<enum RequestFields, std::string>	_header_info;
 		
 		/**
-		 * @brief GET request qeury
+		 * @brief GET request qeury <name, value>
 		 */
 		std::map<std::string, std::string>	_query;
+		
+		enum StatusCode						_status_code;
+		
+		Logger								_logger;
 		
 		/**
 		 * @brief static strings to validate request methods
 		 */
-		static const char					_methods[];
+		static const char*					_methods[];
+		
+		/**
+		 * @brief static strings to print out RequestField enum
+		 */
+		static const char*					_fields_string[];
 };
 
 #endif

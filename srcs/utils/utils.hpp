@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/02 16:52:08 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/04 22:11:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 # include <sstream>
 # include <sys/poll.h>
 
-# define BUFFER_SIZE	65535
+# define BUFFER_SIZE	100
 # define DEBUG 1
 
 namespace utils {

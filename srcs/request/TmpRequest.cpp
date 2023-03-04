@@ -6,21 +6,32 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 17:37:19 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/04 22:12:10 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "TmpRequest.hpp"
 
-const char	TmpRequest::_methods[] = {"GET", "POST", "DELETE"};
+const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE"};
 
-TmpRequest::TmpRequest(void) : _is_complete(false), _is_complete_header(false), _req("") {}
+const char*	TmpRequest::_fields_string[] = {"method", "uri", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary"};
 
-TmpRequest::~TmpRequest(void) {} 
+TmpRequest::TmpRequest(void) : _is_complete(false), _is_complete_header(false), _req(""), _status_code(S200), _logger() {}
 
-std::string	TmpRequest::get_req(void) const
+TmpRequest::~TmpRequest(void) {}
+
+TmpRequest::TmpRequest(enum StatusCode status) : _status_code(status) {}
+
+std::string	TmpRequest::get_request_field(enum RequestFields name) const
 {
-	return (this->_req);
+	if (this->_header_info.count(name) == 0)
+		return ("");
+	return (this->_header_info.at(name));
+}
+
+enum StatusCode	TmpRequest::get_status_code(void) const
+{
+	return (this->_status_code);
 }
 
 bool	TmpRequest::get_is_complete(void) const
@@ -38,22 +49,38 @@ void	TmpRequest::append(const std::string& req)
 		this->extract_header_info();
 		this->_is_complete_header = true;
 	}
-	if (this->_header_info["method"] == "POST")
+	if (this->_header_info[METHOD] == "POST")
 		this->handle_post(req);
 	else
 		this->handle_get();
 }
 
+void	TmpRequest::print_request_header(void) const
+{
+	std::stringstream	ss;
+	// if (!this->_is_complete)
+	// 	throw std::runtime_error("Request is not completely read yet");
+#if DEBUG
+	std::map<enum RequestFields, std::string>::const_iterator	it;
+	
+	it = this->_header_info.begin();
+	for (; it != this->_header_info.end(); it++)
+		this->_logger.debug(_fields_string[it->first] + std::string(": ") + it->second);
+#else
+	this->_logger.info(this->_method + " " + this->_uri + " " + this->_host + ":" + this->_port);
+#endif
+}
+
 bool	TmpRequest::check_header_complete(void)
 {
 	if (this->_req.length() < 4)
-		throw RequestErrorException(__LINE__, 400, "Invalid request length");
+		throw RequestErrorException(__LINE__, E400, "Invalid request length");
 	if (this->_req.find("\r\n\r\n") == std::string::npos)
 		return (false);
 	return (true);
 }
 
-bool	TmpRequest::extract_header_info(void)
+void	TmpRequest::extract_header_info(void)
 {
 	size_t			index;
 	std::string		header;
@@ -69,27 +96,27 @@ bool	TmpRequest::extract_header_info(void)
 	}
 	split = utils::ft_split(header_lines[0]);
 	if (!this->check_request_line(split))
-		throw RequestErrorException(__LINE__, 400, "Request line error");
-	this->_header_info.insert(std::make_pair("method", split[0]));
-	this->_header_info.insert(std::make_pair("uri", split[1]));
-	this->_header_info.insert(std::make_pair("protocol", split[2]));
+		throw RequestErrorException(__LINE__, E400, "Request line error");
+	this->_header_info.insert(std::make_pair(METHOD, split[0]));
+	this->_header_info.insert(std::make_pair(URI, split[1]));
+	this->_header_info.insert(std::make_pair(PROTOCOL, split[2]));
 	for (size_t i = 1; i < header_lines.size(); i++)
 	{
 		split = utils::ft_split(header_lines[i]);
 		if (split.front() == "Host:")
 		{
-			this->_header_info.insert(std::make_pair("server_name", split[1].substr(0, split[1].find_first_of(':'))));
-			this->_header_info.insert(std::make_pair("port", split[1].substr(split[1].find_first_of(':') + 1)));
+			this->_header_info.insert(std::make_pair(SERVER_NAME, split[1].substr(0, split[1].find_first_of(':'))));
+			this->_header_info.insert(std::make_pair(PORT, split[1].substr(split[1].find_first_of(':') + 1)));
 		}
 		else if (split.front() == "Content-Type:")
 			this->handle_content_type(utils::StrVec(split.begin() + 1, split.end()));
 		else if (split.front() == "Transfer-Encoding:")
-			this->_header_info.insert(std::make_pair("transfer-encoding", split.back()));
+			this->_header_info.insert(std::make_pair(TRANSFER_ENCODING, split.back()));
 		else if (split.front() == "Content-Length:")
-			this->_header_info.insert(std::make_pair("content-length", split.back()));
+			this->_header_info.insert(std::make_pair(CONTENT_LENGTH, split.back()));
 	}
-	if (this->_header_info.find("server_nama") == this->_header_info.end())
-		throw RequestErrorException(__LINE__, 400, "Missing request host");
+	if (this->_header_info.count(SERVER_NAME) == 0)
+		throw RequestErrorException(__LINE__, E400, "Missing request host");
 }	
 
 bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
@@ -103,7 +130,7 @@ bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
 	i = 0;
 	while (i < 3)
 	{
-		if (TmpRequest::_methods[i] == vec.front())
+		if (_methods[i] == vec.front())
 			break ;
 		i++;
 	}
@@ -123,13 +150,13 @@ void	TmpRequest::handle_content_type(const utils::StrVec& val)
 	type = val.front();
 	if (type.back() == ';')
 		type.pop_back();
-	this->_header_info.insert(std::make_pair("content-type", type));
+	this->_header_info.insert(std::make_pair(CONTENT_TYPE, type));
 	if (type == "mutlipart/form-data")
 	{
 		if (val.size() != 2)
-			throw RequestErrorException(__LINE__, 400, "Invalid form-data");
+			throw RequestErrorException(__LINE__, E400, "Invalid form-data");
 		else
-			this->_header_info.insert(std::make_pair("boundary", val.back().substr(val.back().find_first_of('=') + 1)));
+			this->_header_info.insert(std::make_pair(BOUNDARY, val.back().substr(val.back().find_first_of('=') + 1)));
 	}
 }
 
@@ -137,16 +164,16 @@ void	TmpRequest::handle_get(void)
 {
 	std::string	uri;
 	std::string	query;
-	int			index;
+	size_t		index;
 	
-	uri = this->_header_info["uri"];
+	uri = this->_header_info[URI];
 	if (uri.find_first_of('?') == std::string::npos)
 		return ;
 	query = uri.substr(uri.find_first_of('?') + 1);
 	while ((index = query.find_first_of('&')) != std::string::npos)
 	{
 		std::string	single;
-		int			index_two;
+		size_t		index_two;
 		
 		single = query.substr(0, index);
 		index_two = single.find_first_of('=');
@@ -157,23 +184,23 @@ void	TmpRequest::handle_get(void)
 
 void	TmpRequest::handle_post(const std::string& req)
 {
-	if (this->_header_info.count("transfer-encoding") > 0 && this->_header_info["transfer-encoding"] == "chunked")
+	if (this->_header_info.count(TRANSFER_ENCODING) > 0 && this->_header_info[TRANSFER_ENCODING] == "chunked")
 	{
 		if (this->_chunked_body.empty())
 			this->_chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 		else
 			this->_chunked_body.append(req);
-		if (this->_chunked_body.find("\r\n0\r\n\r\n"));
+		if (this->_chunked_body.find("\r\n0\r\n\r\n"))
 		{
 			this->_is_complete = true;
 			this->_body = this->tidy_up_chunked_body();
 		}
 	}
-	else if (this->_header_info.count("content-length") > 0)
+	else if (this->_header_info.count(CONTENT_LENGTH) > 0)
 	{
-		int			content_length;
+		size_t	content_length;
 		
-		content_length = std::stoi(this->_header_info["content-length"]);
+		content_length = std::stoi(this->_header_info[CONTENT_LENGTH]);
 		if (this->_body.empty())
 		{
 			std::string body;
@@ -186,7 +213,7 @@ void	TmpRequest::handle_post(const std::string& req)
 		}
 		else
 		{
-			int	remaining;
+			size_t	remaining;
 			
 			remaining = content_length - this->_body.size();
 			if (req.size() > remaining)
@@ -222,22 +249,25 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 	return (res);
 }
 
-TmpRequest::RequestErrorException::RequestErrorException(int line, int status, const std::string& msg)
-	: _line(line), _status(status), _msg(msg) {}
+TmpRequest::RequestErrorException::RequestErrorException(int line, enum StatusCode status, const std::string& msg)
+	: _line(line), _status(status)
+{
+	std::stringstream	ss;
+	
+	ss << this->_status << " ";
+	ss << msg << " ";
+	ss << "(line: " << this->_line << ")";
+	this->_msg = ss.str();
+}
 
 TmpRequest::RequestErrorException::~RequestErrorException(void) throw() {}
 
 const char*	TmpRequest::RequestErrorException::what(void) const throw()
 {
-	std::stringstream	ss;
-	
-	ss << this->_status << " ";
-	ss << this->_msg << " ";
-	ss << "line: " << this->_line;
-	return (ss.str().c_str());
+	return (this->_msg.c_str());
 }
 
-int	TmpRequest::RequestErrorException::get_status(void) const throw()
+enum StatusCode	TmpRequest::RequestErrorException::get_status(void) const throw()
 {
 	return (this->_status);
 }

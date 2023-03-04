@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/02 17:10:24 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/04 22:00:41 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 # include <sys/select.h>
 # include "Request.hpp"
 # include "Response.hpp"
+# include "TmpRequest.hpp"
 
 # define TIMEOUT_SEC	1
 # define TIMEOUT_USEC	0
@@ -64,11 +65,12 @@ class Server {
 		std::vector<Socket>			_sockets;
 		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
 		std::map<int, ServerConfig>	_fd_sconfig;
-		std::map<int, Request>		_fd_requests;
-		static const char*			_example_res;
+		std::map<int, TmpRequest>	_fd_requests;
 		timeval_t					_timeval;
 		Logger						_logger;
-		bool						_is_server_error;
+		// bool						_is_server_error;
+		
+		static const char*			_example_res;
 		
 };
 

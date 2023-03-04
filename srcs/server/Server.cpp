@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/02 17:20:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/04 22:11:32 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ Server::Server(void)
 	this->_timeval.tv_usec = TIMEOUT_USEC;
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config) : _logger(), _is_server_error(false)
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config) : _logger()
 {
 	Config::StrToSConfigMap::const_iterator	it;
 	Socket									tmp;
@@ -143,22 +143,22 @@ std::string			Server::read_request(int fd)
 			res.push_back(buf[i]);
 		std::memset(buf, 0, BUFFER_SIZE);
 #if DEBUG
-		std::cout << "ret: " << ret << ", size: " << res.size() << std::endl;
+		// std::cout << "ret: " << ret << ", size: " << res.size() << std::endl;
 #endif
-		// if (ret < BUFFER_SIZE)
-		// 	break ;
+		if (ret < BUFFER_SIZE)
+			break ;
 		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
-	// if (ret == -1)
-	// 	throw std::runtime_error("Recv()");
+	if (ret == -1)
+		throw std::runtime_error("Recv()");
 #if DEBUG
 	// for (size_t i = 0; i < res.size(); i++)
 	// 	std::cout << res[i];
-	std::cout << "ret = " << ret << "res.size = " << res.size() << std::endl;
-	std::cout << res << std::endl;
-	std::cout << std::endl;
-	std::cout << "last 4: " << (int)res[res.size() - 4] << " " << (int)res[res.size() - 3] << " " << (int)res[res.size() - 2] << " " << (int)res[res.size() - 1] << std::endl;
-	std::cout << "last 1: " << (int)res[res.size()] << std::endl; 
+	// std::cout << "ret = " << ret << "res.size = " << res.size() << std::endl;
+	// std::cout << res << std::endl;
+	// std::cout << std::endl;
+	// std::cout << "last 4: " << (int)res[res.size() - 4] << " " << (int)res[res.size() - 3] << " " << (int)res[res.size() - 2] << " " << (int)res[res.size() - 1] << std::endl;
+	// std::cout << "last 1: " << (int)res[res.size()] << std::endl; 
 #endif
 	return (res);
 }
@@ -258,87 +258,81 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 void	Server::handle_pollin_select(int fd)
 {
 	this->_logger.info("POLLIN (select)");
-	
-	Request								req;
-	std::map<int, Request>::iterator	it;
-	
+
 	try
 	{
-		if ((it = this->_fd_requests.find(fd)) != this->_fd_requests.end())
-		{
-			it->second.append(this->read_request(fd));
-			req = it->second;
-		}
-		else
-		{
-			req = Request(this->read_request(fd));
-			this->_fd_requests.insert(std::make_pair(fd, req));
-		}
-		if (!req.get_is_complete() && !req.get_is_client_side_error())
+		if (this->_fd_requests.count(fd) == 0)
+			this->_fd_requests.insert(std::make_pair(fd, TmpRequest()));
+		this->_fd_requests[fd].append(this->read_request(fd));
+		if (!this->_fd_requests[fd].get_is_complete())
 		{
 #if DEBUG
 			std::cout << "NOT COMPLETE" << std::endl;
 #endif
 			return ;
 		}
-		if (req.get_is_client_side_error())
-			this->_logger.warn("431 Client Side Error");
-		req.print_request_header();
-		FD_CLR(fd, &this->_fd_sets.first);
-		FD_SET(fd, &this->_fd_sets.second);
+		this->_fd_requests[fd].print_request_header();
+	}
+	catch (const TmpRequest::RequestErrorException& e)
+	{
+		this->_logger.warn(e.what());
+		this->_fd_requests[fd] = TmpRequest(e.get_status());
 	}
 	catch (const std::exception& e)
 	{
-
-		this->_logger.warn("500 Internal Server Error (Pollin) " + std::string(e.what()));
-		this->_is_server_error = true;
-		FD_CLR(fd, &this->_fd_sets.first);
-		FD_SET(fd, &this->_fd_sets.second);
+		this->_logger.error(e.what());
+		this->_fd_requests[fd] = TmpRequest(E500);
 	}
+	FD_CLR(fd, &this->_fd_sets.first);
+	FD_SET(fd, &this->_fd_sets.second);
 }
 
 void	Server::handle_pollout_select(int fd)
 {
 	this->_logger.info("POLLOUT (select)");
 	
-	Response		responds;
-	std::string		body;
-	std::string		header;
-	std::string		res;
+	// Response		responds;
+	// std::string		body;
+	// std::string		header;
+	// std::string		res;
 	
 	// std::cout << "pollout fd: " << fd << std::endl;
-	try
-	{
-		if (this->_is_server_error)
-			throw std::runtime_error("500 Internal Server Error (Pollout from Pollin)");
-		else if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
-			throw std::runtime_error("431 Client Side Error (Pollout from Pollin)");
-		if (!this->_fd_requests.find(fd)->second.get_is_empty_request())
-		{
-			responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
-			header = responds.get_response_header();
-			body = responds.get_body();
-			res.append(header).append(body);
-			send(fd, res.c_str(), res.size(), 0);
-		}
-		if (close(fd) != 0)
-			throw std::runtime_error("Pollout select close");
-	}
-	catch (const std::exception& e)
-	{
-		this->_logger.warn("WTF " + std::string(e.what()));
-		this->_logger.warn(strerror(errno));
-		if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
-			responds = Response(431, this->_fd_sconfig.find(fd)->second);
-		else
-			responds = Response(500, this->_fd_sconfig.find(fd)->second);
-		header = responds.get_response_header();
-		body = responds.get_body();
-		res.append(header).append(body);
-		send(fd, res.c_str(), res.size(), 0);
-		if (close(fd) != 0)
-			throw std::runtime_error("Pollout select close");
-	}
+	// try
+	// {
+	// 	if (this->_is_server_error)
+	// 		throw std::runtime_error("500 Internal Server Error (Pollout from Pollin)");
+	// 	else if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
+	// 		throw std::runtime_error("431 Client Side Error (Pollout from Pollin)");
+	// 	if (!this->_fd_requests.find(fd)->second.get_is_empty_request())
+	// 	{
+	// 		responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
+	// 		header = responds.get_response_header();
+	// 		body = responds.get_body();
+	// 		res.append(header).append(body);
+	// 		send(fd, res.c_str(), res.size(), 0);
+	// 	}
+	// 	if (close(fd) != 0)
+	// 		throw std::runtime_error("Pollout select close");
+	// }
+	// catch (const std::exception& e)
+	// {
+	// 	this->_logger.warn("WTF " + std::string(e.what()));
+	// 	this->_logger.warn(strerror(errno));
+	// 	if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
+	// 		responds = Response(431, this->_fd_sconfig.find(fd)->second);
+	// 	else
+	// 		responds = Response(500, this->_fd_sconfig.find(fd)->second);
+	// 	header = responds.get_response_header();
+	// 	body = responds.get_body();
+	// 	res.append(header).append(body);
+	// 	send(fd, res.c_str(), res.size(), 0);
+	// 	if (close(fd) != 0)
+	// 		throw std::runtime_error("Pollout select close");
+	// }
+	
+	send(fd, _example_res, std::strlen(_example_res), 0);
+	if (close(fd) != 0)
+		throw std::runtime_error("Pollout select close");
 	FD_CLR(fd, &this->_fd_sets.second);
 	this->_fd_requests.erase(fd);
 }
