@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:53:38 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 22:09:04 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 14:15:49 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 # include <exception>
 # include <sstream>
 # include "Logger.hpp"
+# include <algorithm>
 
 enum RequestFields {
 	METHOD,
@@ -33,9 +34,10 @@ enum RequestFields {
 };
 
 enum StatusCode {
-	E400 = 400,
-	E500 = 500,
-	S200 = 200
+	E400	= 400,
+	E500	= 500,
+	S200	= 200,
+	E0		= 0		//	Empty request
 };
 
 class TmpRequest {

@@ -6,14 +6,14 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 22:11:32 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 15:54:42 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Server.hpp"
 #include <cstring>
 
-const char* Server::_example_res = "HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: 44\n\n<link rel=\"icon\" href=\"data:,\">\nHello world!";
+const char* Server::_example_res = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 44\r\n\r\n<link rel=\"icon\" href=\"data:,\">\nHello world!";
 
 /***********************************
  * Constructors
@@ -257,13 +257,18 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 
 void	Server::handle_pollin_select(int fd)
 {
-	this->_logger.info("POLLIN (select)");
-
+	this->_logger.info("POLLIN (select) fd: " + std::to_string(fd));
+	
 	try
 	{
+		std::string	req;
+		
+		req = this->read_request(fd);
+		if (req.empty())	// empty request or closed by client
+			throw TmpRequest::RequestErrorException(__LINE__, E0, "Empty request or Closed by client");
 		if (this->_fd_requests.count(fd) == 0)
 			this->_fd_requests.insert(std::make_pair(fd, TmpRequest()));
-		this->_fd_requests[fd].append(this->read_request(fd));
+		this->_fd_requests[fd].append(req);
 		if (!this->_fd_requests[fd].get_is_complete())
 		{
 #if DEBUG
@@ -276,7 +281,16 @@ void	Server::handle_pollin_select(int fd)
 	catch (const TmpRequest::RequestErrorException& e)
 	{
 		this->_logger.warn(e.what());
-		this->_fd_requests[fd] = TmpRequest(e.get_status());
+		if (e.get_status() == E0)	// empty request or closed by client
+		{
+			FD_CLR(fd, &this->_fd_sets.first);
+			this->_fd_requests.erase(fd);
+			if (close(fd) != 0)
+				throw std::runtime_error(std::to_string(__LINE__) + " close error");
+			return ;
+		}
+		else
+			this->_fd_requests[fd] = TmpRequest(e.get_status());
 	}
 	catch (const std::exception& e)
 	{
@@ -289,8 +303,7 @@ void	Server::handle_pollin_select(int fd)
 
 void	Server::handle_pollout_select(int fd)
 {
-	this->_logger.info("POLLOUT (select)");
-	
+	this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
 	// Response		responds;
 	// std::string		body;
 	// std::string		header;
@@ -358,6 +371,7 @@ void	Server::main_loop_select(void)
 	while (1)
 	{
 		// this->_logger.listening();
+		// this->_logger.debug("selecting...");
 		read_fds = this->_fd_sets.first;
 		write_fds = this->_fd_sets.second;
 		select_ready = select(maxfd + 1, &read_fds, &write_fds, NULL, &this->_timeval);

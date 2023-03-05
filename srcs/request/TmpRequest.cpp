@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 22:12:10 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 15:36:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,12 +42,16 @@ bool	TmpRequest::get_is_complete(void) const
 void	TmpRequest::append(const std::string& req)
 {
 	this->_req.append(req);
+#if DEBUG
+	utils::print_msg_with_crlf(this->_req);
+#endif
 	if (!_is_complete_header)
 	{
 		if (!this->check_header_complete())
 			return ;
 		this->extract_header_info();
 		this->_is_complete_header = true;
+		this->_logger.debug("in is_complete_header");
 	}
 	if (this->_header_info[METHOD] == "POST")
 		this->handle_post(req);
@@ -66,6 +70,17 @@ void	TmpRequest::print_request_header(void) const
 	it = this->_header_info.begin();
 	for (; it != this->_header_info.end(); it++)
 		this->_logger.debug(_fields_string[it->first] + std::string(": ") + it->second);
+	if (this->_query.size() > 0)
+	{
+		this->_logger.debug(" --------------------- ");
+		std::map<std::string, std::string>::const_iterator	it2;
+		
+		it2 = this->_query.begin();
+		for (; it2 != this->_query.end(); it2++)
+			this->_logger.debug(it2->first + std::string(": ") + it2->second);
+	}
+	this->_logger.debug(" ----------- Body ----------- ");
+	utils::print_msg_with_crlf(this->_body);
 #else
 	this->_logger.info(this->_method + " " + this->_uri + " " + this->_host + ":" + this->_port);
 #endif
@@ -87,13 +102,15 @@ void	TmpRequest::extract_header_info(void)
 	utils::StrVec	header_lines;
 	utils::StrVec	split;
 	
+	
 	index = this->_req.find("\r\n\r\n");
 	header = std::string(this->_req.begin(), this->_req.begin() + index);
 	while ((index = header.find("\r\n")) != std::string::npos)
 	{
-		header_lines.push_back(std::string(header.begin(), header.begin() + index));
-		header = std::string(header.begin() + index + 2, header.end());
+		header_lines.push_back(header.substr(0, index));
+		header = header.substr(index + 2);
 	}
+	header_lines.push_back(header);
 	split = utils::ft_split(header_lines[0]);
 	if (!this->check_request_line(split))
 		throw RequestErrorException(__LINE__, E400, "Request line error");
@@ -125,7 +142,7 @@ bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
 	
 	if (vec.empty())
 		return (false);
-	if (vec.size() < 3)
+	if (vec.size() != 3)
 		return (false);
 	i = 0;
 	while (i < 3)
@@ -163,23 +180,33 @@ void	TmpRequest::handle_content_type(const utils::StrVec& val)
 void	TmpRequest::handle_get(void)
 {
 	std::string	uri;
-	std::string	query;
-	size_t		index;
 	
 	uri = this->_header_info[URI];
-	if (uri.find_first_of('?') == std::string::npos)
-		return ;
-	query = uri.substr(uri.find_first_of('?') + 1);
-	while ((index = query.find_first_of('&')) != std::string::npos)
+	if (uri.find_first_of('?') != std::string::npos)
 	{
-		std::string	single;
-		size_t		index_two;
+		std::string	query;
+		size_t		index;
 		
-		single = query.substr(0, index);
-		index_two = single.find_first_of('=');
-		this->_query.insert(std::make_pair(single.substr(0, index_two), single.substr(index_two + 1)));
-		query = query.substr(index + 1);
+		query = uri.substr(uri.find_first_of('?') + 1);
+		if (query.length() > 0)
+		{
+			std::string	single;
+			size_t		index_two;
+			while (query.length())
+			{
+				index = query.find_first_of('&');
+				single = query.substr(0, index);
+				index_two = single.find_first_of('=');
+				this->_query.insert(std::make_pair(single.substr(0, index_two), single.substr(index_two + 1)));
+				if (index == std::string::npos)
+					query.clear();
+				else
+					query = query.substr(index + 1);
+			}
+			this->_query.erase("");
+		}
 	}
+	this->_is_complete = true;
 }
 
 void	TmpRequest::handle_post(const std::string& req)
@@ -190,8 +217,9 @@ void	TmpRequest::handle_post(const std::string& req)
 			this->_chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 		else
 			this->_chunked_body.append(req);
-		if (this->_chunked_body.find("\r\n0\r\n\r\n"))
+		if (this->_chunked_body.find("\r\n0\r\n\r\n") != std::string::npos)
 		{
+			std::cout << this->_chunked_body << std::endl;
 			this->_is_complete = true;
 			this->_body = this->tidy_up_chunked_body();
 		}
@@ -207,7 +235,7 @@ void	TmpRequest::handle_post(const std::string& req)
 			
 			body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 			if (body.size() > content_length)
-				this->_body.append(body, content_length);
+				this->_body.append(body.c_str(), content_length);
 			else
 				this->_body.append(body);
 		}
@@ -254,7 +282,7 @@ TmpRequest::RequestErrorException::RequestErrorException(int line, enum StatusCo
 {
 	std::stringstream	ss;
 	
-	ss << this->_status << " ";
+	ss << this->_status << " " << (this->_status == E400 ? "Bad Request: " : "");
 	ss << msg << " ";
 	ss << "(line: " << this->_line << ")";
 	this->_msg = ss.str();

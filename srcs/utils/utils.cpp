@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/26 14:09:38 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 11:58:27 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,20 @@ void	charvec_shrink_to_fit(CharVec& cv)
 	cv = tmp;
 }
 
+void	print_msg_with_crlf(const std::string& s)
+{
+	for (size_t i = 0; i < s.size(); i++)
+	{
+		if (s[i] == '\r')
+			std::cout << "\\r";
+		else if (s[i] == '\n')
+			std::cout << "\\n" << std::endl;
+		else
+			std::cout << s[i];
+	}
+	std::cout << std::endl;
+}
+
 }
 
 bool	operator==(const struct pollfd& lhs, const struct pollfd& rhs)
@@ -89,4 +103,5 @@ std::ostream&	operator<<(std::ostream& o, const utils::CharVec cv)
 		o << cv[i];
 	return (o);
 }
+
 

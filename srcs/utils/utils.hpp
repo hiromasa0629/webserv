@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 22:11:05 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 11:54:37 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,6 +52,8 @@ StrVec									ft_split(const std::string& s);
 bool									is_valid_server_directives(std::string s);
 bool									is_valid_location_directives(std::string s);
 void									charvec_shrink_to_fit(CharVec& cv);
+
+void									print_msg_with_crlf(const std::string& s);
 
 }
 
