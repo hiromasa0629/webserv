@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 15:36:26 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 19:51:12 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,11 @@ std::string	TmpRequest::get_request_field(enum RequestFields name) const
 enum StatusCode	TmpRequest::get_status_code(void) const
 {
 	return (this->_status_code);
+}
+
+std::string	TmpRequest::get_body(void) const
+{
+	return (this->_body);
 }
 
 bool	TmpRequest::get_is_complete(void) const
@@ -79,8 +84,11 @@ void	TmpRequest::print_request_header(void) const
 		for (; it2 != this->_query.end(); it2++)
 			this->_logger.debug(it2->first + std::string(": ") + it2->second);
 	}
-	this->_logger.debug(" ----------- Body ----------- ");
-	utils::print_msg_with_crlf(this->_body);
+	if (!this->_body.empty())
+	{
+		this->_logger.debug(" ----------- Body ----------- ");
+		utils::print_msg_with_crlf(this->_body);
+	}
 #else
 	this->_logger.info(this->_method + " " + this->_uri + " " + this->_host + ":" + this->_port);
 #endif
@@ -89,7 +97,7 @@ void	TmpRequest::print_request_header(void) const
 bool	TmpRequest::check_header_complete(void)
 {
 	if (this->_req.length() < 4)
-		throw RequestErrorException(__LINE__, E400, "Invalid request length");
+		throw ServerErrorException(__LINE__, __FILE__, E400, "Invalid request length");
 	if (this->_req.find("\r\n\r\n") == std::string::npos)
 		return (false);
 	return (true);
@@ -113,7 +121,7 @@ void	TmpRequest::extract_header_info(void)
 	header_lines.push_back(header);
 	split = utils::ft_split(header_lines[0]);
 	if (!this->check_request_line(split))
-		throw RequestErrorException(__LINE__, E400, "Request line error");
+		throw ServerErrorException(__LINE__, __FILE__, E400, "Request line error");
 	this->_header_info.insert(std::make_pair(METHOD, split[0]));
 	this->_header_info.insert(std::make_pair(URI, split[1]));
 	this->_header_info.insert(std::make_pair(PROTOCOL, split[2]));
@@ -133,7 +141,7 @@ void	TmpRequest::extract_header_info(void)
 			this->_header_info.insert(std::make_pair(CONTENT_LENGTH, split.back()));
 	}
 	if (this->_header_info.count(SERVER_NAME) == 0)
-		throw RequestErrorException(__LINE__, E400, "Missing request host");
+		throw ServerErrorException(__LINE__, __FILE__, E400, "Missing request host");
 }	
 
 bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
@@ -171,7 +179,7 @@ void	TmpRequest::handle_content_type(const utils::StrVec& val)
 	if (type == "mutlipart/form-data")
 	{
 		if (val.size() != 2)
-			throw RequestErrorException(__LINE__, E400, "Invalid form-data");
+			throw ServerErrorException(__LINE__, __FILE__, E400, "Invalid form-data");
 		else
 			this->_header_info.insert(std::make_pair(BOUNDARY, val.back().substr(val.back().find_first_of('=') + 1)));
 	}
@@ -275,28 +283,5 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 			res.push_back(lines[i][j]);
 	}
 	return (res);
-}
-
-TmpRequest::RequestErrorException::RequestErrorException(int line, enum StatusCode status, const std::string& msg)
-	: _line(line), _status(status)
-{
-	std::stringstream	ss;
-	
-	ss << this->_status << " " << (this->_status == E400 ? "Bad Request: " : "");
-	ss << msg << " ";
-	ss << "(line: " << this->_line << ")";
-	this->_msg = ss.str();
-}
-
-TmpRequest::RequestErrorException::~RequestErrorException(void) throw() {}
-
-const char*	TmpRequest::RequestErrorException::what(void) const throw()
-{
-	return (this->_msg.c_str());
-}
-
-enum StatusCode	TmpRequest::RequestErrorException::get_status(void) const throw()
-{
-	return (this->_status);
 }
 

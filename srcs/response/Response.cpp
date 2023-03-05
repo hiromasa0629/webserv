@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/02 15:04:15 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 19:58:22 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,14 +22,14 @@ Response::~Response(void)
 	
 }
 
-Response::Response(const Request& request, const ServerConfig& sconfig) : _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
+Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
 {
-	this->_uri					= this->_request.get_uri();
-	this->_host					= this->_request.get_host();
-	this->_port					= this->_request.get_port();
+	this->_uri					= this->_request.get_request_field(URI);
+	this->_host					= this->_request.get_request_field(SERVER_NAME);
+	this->_port					= this->_request.get_request_field(PORT);
 	this->_body					= this->_request.get_body();
-	this->_request_body_size	= this->_request.get_body_size();
-	this->_method				= this->_request.get_method();
+	this->_request_body_size	= this->_body.size();
+	this->_method				= this->_request.get_request_field(METHOD);
 	
 	this->set_directives(sconfig);
 	this->set_path();
@@ -48,48 +48,21 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	// std::cout << "is_redirection : " << _is_redirection << std::endl;
 	// std::cout << "_is_autoindex : " << _is_autoindex << std::endl;
 	// std::cout << "_is_upload : " << _is_upload << std::endl;
-	if (this->has_handled_error())
-	{
-#if DEBUG
-		this->_logger.debug("This request is an ERROR");
-#endif
-		this->handle_error();
-	}
-	else if (this->is_cgi())
-	{
-#if DEBUG
-		this->_logger.debug("This request is a CGI");
-#endif
+	
+	this->has_handled_error();
+	
+	// if (this->has_handled_error())
+	// 	this->handle_error();
+	if (this->is_cgi())
 		this->handle_cgi();
-	}
 	else if (this->_is_redirection)
-	{
-#if DEBUG
-		this->_logger.debug("This request is a REDIRECTION");
-#endif
 		this->handle_redirect();
-	}
 	else if (this->_is_autoindex)
-	{
-#if DEBUG
-		this->_logger.debug("This request is an AUTOINDEX");
-#endif
 		this->handle_autoindex();
-	}
 	else if (this->_is_upload)
-	{
-#if DEBUG
-		this->_logger.debug("This request is an UPLOAD");
-#endif
 		this->handle_upload();
-	}
 	else
-	{
-#if DEBUG
-		this->_logger.debug("This request is NORMAL");
-#endif
 		this->handle_normal();
-	}
 
 	std::stringstream	ss;
 	
@@ -97,38 +70,42 @@ Response::Response(const Request& request, const ServerConfig& sconfig) : _reque
 	this->_logger.info(ss.str());
 }
 
-Response::Response(int error_code, const ServerConfig& sconfig)
+Response::Response(enum StatusCode status, const ServerConfig& sconfig)
 {	
-	this->set_directives(sconfig);
-	this->_header.set_status(error_code);
-	this->handle_error();
-	
-	std::stringstream	ss;
-
-	ss << this->_header.get_status() << " " << this->_path;
-	this->_logger.info(ss.str());
-}
-
-void	Response::handle_error(void)
-{
 	utils::StrVec	vec;
 	std::string		root;
 	
-	if (this->_directives.find("error_page") == this->_directives.end())
-		return ;
-	vec = this->_directives.find("error_page")->second;
-	this->_path.clear();
-	root = this->_directives.find("root")->second[0];
-	if (root.back() != '/')
-		root.append("/");
-	for (size_t i = 0; i < vec.size(); i++)
-		if (std::atoi(vec[i++].c_str()) == this->_header.get_status())
-			this->_path.append(root).append(vec[i]);
-	this->read_path();
+	this->set_directives(sconfig);
+	this->_header.set_status(status);
+	// this->handle_error();
+	
+	if (this->_directives.count("error_page") > 0)
+	{
+		vec = this->_directives.at("error_page");
+		this->_path.clear();
+		root = this->_directives.at("root")[0];
+		if (this->_l_directives.count("error_page") > 0 && this->_l_directives.count("root") == 0)
+			root.append(this->_location_uri);
+		if (root.back() != '/')
+			root.append("/");
+		for (size_t i = 0; i < vec.size(); i++)
+		{
+			if (std::atoi(vec[i++].c_str()) == this->_header.get_status())
+			{
+				this->_path.append(root).append(vec[i]);
+				break ;
+			}
+		}
+		this->read_path();
+	}
 	this->_header.set_location("");
 	this->_header.set_content_length(this->_body.size());
 	this->_header.construct();
 }
+
+// void	Response::handle_error(void)
+// {
+// }
 
 void	Response::handle_cgi(void)
 {
@@ -143,7 +120,7 @@ void	Response::handle_upload(void)
 	std::ofstream								outfile;
 	std::string									tmp_path;
 	
-	form = ResponseForm(this->_body, this->_request.get_boundary());
+	form = ResponseForm(this->_body, this->_request.get_request_field(BOUNDARY));
 	this->_path.clear();
 	this->_path.append(this->_directives["upload"][0]);
 	rff = form.get_fields();
@@ -212,9 +189,10 @@ void	Response::handle_autoindex(void)
 		}
 		else if (!dir)
 		{
-			this->_header.set_status(404); 	
-			this->handle_error();
-			return ;
+			// this->_header.set_status(404); 	
+			// this->handle_error();
+			throw ServerErrorException(__LINE__, __FILE__, E404, "Not found");
+			// return ;
 		}
 	}
 	this->_autoindex = ResponseAutoindex(this->_path, this->_rest_of_the_uri, this->_host, this->_port, this->_location_uri);
@@ -233,7 +211,7 @@ void	Response::handle_redirect(void)
 	
 	redirect = this->_directives["return"][0];
 	ss << "http://";
-	ss << this->_request.get_host() << ":" << this->_request.get_port();
+	ss << this->_host << ":" << this->_port;
 	if (redirect.front() != '/')
 		redirect.insert(redirect.begin(), '/');
 	ss << redirect;
@@ -244,61 +222,47 @@ void	Response::handle_redirect(void)
 	this->_header.construct();
 }
 
-bool	Response::has_handled_error(void)
+void	Response::has_handled_error(void)
 {
-	utils::StrVec					sv;
 	utils::StrToStrVecMap::iterator	it;
-	std::ifstream					infile;
 	
-	// check server_names
-	if (this->_uri.empty())
-	{
-		this->_header.set_status(500);
-		this->_logger.warn("Empty uri for response");
-		return (true);
-	}
+	// Handle invalid request
+	if (this->_request.get_status_code() != S200)
+		throw ServerErrorException(__LINE__, __FILE__, this->_request.get_status_code(), "Invalid Request");
+	// Check server_name
 	it = this->_directives.find("server_name");
-	if (it != this->_directives.end() && !std::count(sv.begin(), sv.end(), "_") && !std::count(sv.begin(), sv.end(), this->_host) && !this->is_localhost())
+	if (it != this->_directives.end())
 	{
-		this->_header.set_status(404);
-		this->_logger.warn(this->_host + ", Invalid server_name");
-		return (true);
+		utils::StrVec	sv;
+		
+		sv = it->second;
+		if (!std::count(sv.begin(), sv.end(), "_") && !std::count(sv.begin(), sv.end(), this->_host) && !this->is_localhost())
+			throw ServerErrorException(__LINE__, __FILE__, E404, "Invalid server_name");
 	}
 	// check limit_except
 	it = this->_directives.find("limit_except");
 	if (it != this->_directives.end() && !std::count(it->second.begin(), it->second.end(), this->_method))
-	{
-		this->_header.set_status(405);
-		this->_logger.warn(this->_method + ", Method not allowed");
-		return (true);
-	}
+		throw ServerErrorException(__LINE__, __FILE__, E405, "Method not allowed");
 	// Body size
 	it = this->_directives.find("client_max_body_size");
-	if (it != this->_directives.end() && std::atoi(it->second[0].c_str()) < this->_request.get_body_size())
-	{
-		// std::cout << "request_body_size: " << this->_request_body_size << std::endl;
-		this->_header.set_status(413);
-		this->_logger.warn("Body size too large");
-		return (true);
-	}
+	if (it != this->_directives.end() && std::atoi(it->second[0].c_str()) < this->_request_body_size)
+		throw ServerErrorException(__LINE__, __FILE__, E413, "Body size too large");
 	// try open path if not (autoindex and redirection)
-	if (this->_is_autoindex || this->_is_redirection || this->_method != "GET")
-		return (false);
-	infile.open(this->_path);
-	if (!infile.good())
+	if (!this->_is_autoindex && !this->_is_redirection && this->_method == "GET")
 	{
-		infile.open(this->_path + ".html");
+		std::ifstream					infile;
+
+		infile.open(this->_path);
 		if (!infile.good())
 		{
-			this->_header.set_status(404);
-			this->_logger.warn(this->_path + ", Path not found");
-			return (true);
+			infile.open(this->_path + ".html");
+			if (!infile.good())
+				throw ServerErrorException(__LINE__, __FILE__, E404, "Path not found " + this->_path);
 		}
 	}
 #if DEBUG
 	this->_logger.debug("Passed error handle");
 #endif
-	return (false);
 }
 
 // Set server and location directives and combine them
@@ -336,17 +300,17 @@ void	Response::set_path(void)
 	
 	if (!this->_l_directives.size()) // No matching location block
 	{
-		path.append(this->_directives.find("root")->second[0]);
+		path.append(this->_directives.at("root")[0]);
 		this->remove_trailing_slash(path);
-		path.append(this->_request.get_uri());
+		path.append(this->_uri);
 		this->_path = path;
 	}
 	else // Has matching location block
 	{
 		// std::cout << "root: " << this->_directives.find("root")->second[0] << std::endl;
-		path.append(this->_directives.find("root")->second[0]);
+		path.append(this->_directives.at("root")[0]);
 		this->remove_trailing_slash(path);
-		if (this->_l_directives.find("root") == this->_l_directives.end())
+		if (this->_l_directives.count("root") == 0)
 			path.append(this->_location_uri);
 		this->remove_trailing_slash(path);
 		// if has more uri
@@ -354,7 +318,7 @@ void	Response::set_path(void)
 			path.append(this->_rest_of_the_uri);
 		else
 		{
-			if (this->_directives.find("index") != this->_directives.end())
+			if (this->_directives.count("index") > 0)
 				path.append("/").append(this->_directives.find("index")->second[0]);
 		}
 	}
@@ -382,7 +346,7 @@ std::string	Response::get_body(void) const
 
 bool	Response::is_localhost(void) const
 {
-	return (this->_request.get_host() == "localhost" || this->_request.get_host() == "127.0.0.1");
+	return (this->_host == "localhost" || this->_host == "127.0.0.1");
 }
 
 void	Response::print_directives(void) const
@@ -424,7 +388,7 @@ void	Response::read_path(void)
 	while (infile.get(c))
 	{
 		if (infile.fail())
-			throw std::runtime_error("Infile read");
+			throw ServerErrorException(__LINE__, __FILE__, E500, "Read path error");
 		this->_body.push_back(c);
 	}
 }
@@ -434,3 +398,4 @@ void	Response::remove_trailing_slash(std::string& path)
 	if (path.back() == '/')
 		path.pop_back();
 }
+

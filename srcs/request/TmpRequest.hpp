@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:53:38 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 14:15:49 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 19:24:31 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,25 +20,7 @@
 # include <sstream>
 # include "Logger.hpp"
 # include <algorithm>
-
-enum RequestFields {
-	METHOD,
-	URI,
-	SERVER_NAME,
-	PORT,
-	PROTOCOL,
-	CONTENT_LENGTH,
-	CONTENT_TYPE,
-	TRANSFER_ENCODING,
-	BOUNDARY
-};
-
-enum StatusCode {
-	E400	= 400,
-	E500	= 500,
-	S200	= 200,
-	E0		= 0		//	Empty request
-};
+# include "ServerErrorException.hpp"
 
 class TmpRequest {
 	public:
@@ -49,6 +31,7 @@ class TmpRequest {
 		std::string		get_request_field(enum RequestFields name) const;
 		bool			get_is_complete(void) const;
 		enum StatusCode	get_status_code(void) const;
+		std::string		get_body(void) const;
 		
 		void		print_request_header(void) const;
 		
@@ -58,18 +41,6 @@ class TmpRequest {
 		 * @param req recv() received bytes
 		 */
 		void		append(const std::string& req);
-		
-		class RequestErrorException : public std::exception {
-			public:
-				RequestErrorException(int line, enum StatusCode _status, const std::string& msg);
-				virtual ~RequestErrorException(void) throw();
-				virtual const char*	what(void) const throw();
-				enum StatusCode		get_status(void) const throw();
-			private:
-				int				_line;
-				enum StatusCode	_status;
-				std::string		_msg;
-		};
 		
 	private:
 

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 15:54:42 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 20:03:40 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,13 +57,13 @@ Server::Server(const Server &src)
 	*this = src;
 }
 
-Server	&Server::operator=(const Server &rhs)
-{
-	this->_fds = rhs._fds;
-	this->_sockets = rhs._sockets;
+// Server	&Server::operator=(const Server &rhs)
+// {
+// 	this->_fds = rhs._fds;
+// 	this->_sockets = rhs._sockets;
 
-	return (*this);
-}
+// 	return (*this);
+// }
 
 void	Server::run(void)
 {
@@ -118,16 +118,16 @@ void	Server::init_listen(void)
 	}
 }
 
-void	Server::insert_fd_to_fds(int fd, short event)
-{
-	pollfd_t	tmp;
+// void	Server::insert_fd_to_fds(int fd, short event)
+// {
+// 	pollfd_t	tmp;
 	
 
-	tmp.fd = fd;
-	tmp.events = event;
-	this->_fds.push_back(tmp);
+// 	tmp.fd = fd;
+// 	tmp.events = event;
+// 	this->_fds.push_back(tmp);
 	
-}
+// }
 
 std::string			Server::read_request(int fd)
 {
@@ -265,7 +265,7 @@ void	Server::handle_pollin_select(int fd)
 		
 		req = this->read_request(fd);
 		if (req.empty())	// empty request or closed by client
-			throw TmpRequest::RequestErrorException(__LINE__, E0, "Empty request or Closed by client");
+			throw ServerErrorException(__LINE__, __FILE__, E0, "Empty request or Closed by client");
 		if (this->_fd_requests.count(fd) == 0)
 			this->_fd_requests.insert(std::make_pair(fd, TmpRequest()));
 		this->_fd_requests[fd].append(req);
@@ -278,7 +278,7 @@ void	Server::handle_pollin_select(int fd)
 		}
 		this->_fd_requests[fd].print_request_header();
 	}
-	catch (const TmpRequest::RequestErrorException& e)
+	catch (const ServerErrorException& e)
 	{
 		this->_logger.warn(e.what());
 		if (e.get_status() == E0)	// empty request or closed by client
@@ -304,48 +304,47 @@ void	Server::handle_pollin_select(int fd)
 void	Server::handle_pollout_select(int fd)
 {
 	this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
-	// Response		responds;
-	// std::string		body;
-	// std::string		header;
-	// std::string		res;
+	Response		response;
+	std::string		body;
+	std::string		header;
+	std::string		res;
+
+	try
+	{
+		response = Response(this->_fd_requests[fd], this->_fd_sconfig[fd]);
+		header = response.get_response_header();
+		body = response.get_body();
+		res.append(header).append(body);
+		send(fd, res.c_str(), res.size(), 0);
+		if (close(fd) != 0)
+			throw std::runtime_error(std::to_string(__LINE__) + " close error");
+	}
+	catch (const ServerErrorException& e)
+	{
+		this->_logger.warn(e.what());
+		response = Response(e.get_status(), this->_fd_sconfig[fd]);
+		header = response.get_response_header();
+		body = response.get_body();
+		res.append(header).append(body);
+		send(fd, res.c_str(), res.size(), 0);
+		if (close(fd) != 0)
+			throw std::runtime_error(std::to_string(__LINE__) + " close error");
+	}
+	catch (const std::exception& e)
+	{
+		this->_logger.warn(e.what());
+		response = Response(E500, this->_fd_sconfig[fd]);
+		header = response.get_response_header();
+		body = response.get_body();
+		res.append(header).append(body);
+		send(fd, res.c_str(), res.size(), 0);
+		if (close(fd) != 0)
+			throw std::runtime_error(std::to_string(__LINE__) + " close error");
+	}
 	
-	// std::cout << "pollout fd: " << fd << std::endl;
-	// try
-	// {
-	// 	if (this->_is_server_error)
-	// 		throw std::runtime_error("500 Internal Server Error (Pollout from Pollin)");
-	// 	else if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
-	// 		throw std::runtime_error("431 Client Side Error (Pollout from Pollin)");
-	// 	if (!this->_fd_requests.find(fd)->second.get_is_empty_request())
-	// 	{
-	// 		responds = Response(this->_fd_requests.find(fd)->second, this->_fd_sconfig.find(fd)->second);
-	// 		header = responds.get_response_header();
-	// 		body = responds.get_body();
-	// 		res.append(header).append(body);
-	// 		send(fd, res.c_str(), res.size(), 0);
-	// 	}
-	// 	if (close(fd) != 0)
-	// 		throw std::runtime_error("Pollout select close");
-	// }
-	// catch (const std::exception& e)
-	// {
-	// 	this->_logger.warn("WTF " + std::string(e.what()));
-	// 	this->_logger.warn(strerror(errno));
-	// 	if (this->_fd_requests.find(fd)->second.get_is_client_side_error())
-	// 		responds = Response(431, this->_fd_sconfig.find(fd)->second);
-	// 	else
-	// 		responds = Response(500, this->_fd_sconfig.find(fd)->second);
-	// 	header = responds.get_response_header();
-	// 	body = responds.get_body();
-	// 	res.append(header).append(body);
-	// 	send(fd, res.c_str(), res.size(), 0);
-	// 	if (close(fd) != 0)
-	// 		throw std::runtime_error("Pollout select close");
-	// }
-	
-	send(fd, _example_res, std::strlen(_example_res), 0);
-	if (close(fd) != 0)
-		throw std::runtime_error("Pollout select close");
+	// send(fd, _example_res, std::strlen(_example_res), 0);
+	// if (close(fd) != 0)
+	// 	throw std::runtime_error("Pollout select close");
 	FD_CLR(fd, &this->_fd_sets.second);
 	this->_fd_requests.erase(fd);
 }
@@ -395,7 +394,6 @@ void	Server::main_loop_select(void)
 			this->handle_pollout_select(i);
 		}
 	}
-	
 }
 
 bool	Server::is_socketfd(int fd) const

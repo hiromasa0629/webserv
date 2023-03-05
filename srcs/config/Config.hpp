@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:07 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/23 13:25:21 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 19:43:00 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ enum ConfigType {
 class BlockConfig {
 	public:
 		BlockConfig(void);
-		~BlockConfig(void);
+		virtual ~BlockConfig(void);
 		
 		virtual void					set_directives(const std::string& s);
 		virtual	void					print_directives(void);

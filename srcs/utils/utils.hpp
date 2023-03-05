@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 11:54:37 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 19:23:00 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,28 @@
 
 # define BUFFER_SIZE	100
 # define DEBUG 1
+
+enum RequestFields {
+	METHOD,
+	URI,
+	SERVER_NAME,
+	PORT,
+	PROTOCOL,
+	CONTENT_LENGTH,
+	CONTENT_TYPE,
+	TRANSFER_ENCODING,
+	BOUNDARY
+};
+
+enum StatusCode {
+	E400	= 400,	// Bad Request
+	E404	= 404,	// Not found
+	E405	= 405,	// Method Not Allowed
+	E413	= 413,	// Body Size Too Large
+	E500	= 500,	// Internal Server Error
+	S200	= 200,
+	E0		= 0		//	Empty request
+};
 
 namespace utils {
 

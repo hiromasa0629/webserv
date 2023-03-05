@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/04 22:00:41 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/05 19:24:44 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 # include "Request.hpp"
 # include "Response.hpp"
 # include "TmpRequest.hpp"
+# include "ServerErrorException.hpp"
 
 # define TIMEOUT_SEC	1
 # define TIMEOUT_USEC	0
@@ -34,16 +35,30 @@ class Server {
 		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config);
 		~Server(void);
 		Server(const Server &src);
-		Server	&operator=(const Server &rhs);
+		// Server	&operator=(const Server &rhs);
 
 		void	run(void);
 
 	private:
 		Server(void);
-
+		
+		/**
+		 * @brief bind address to socket
+		 */
 		void	init_bind(void);
+		
+		/**
+		 * @brief start listening on scoket
+		 */
 		void	init_listen(void);
-		void	insert_fd_to_fds(int fd, short event);
+		
+		/**
+		 * @brief insert fd into the fd pool for poll()
+		 * 
+		 * @param fd socket or client fd
+		 * @param event POLLIN or POLLOUT
+		 */
+		// void	insert_fd_to_fds(int fd, short event);
 		
 		// poll()
 		// void	main_loop(void);
@@ -51,17 +66,62 @@ class Server {
 		// void	handle_pollin(const pollfd_t& pollfd);
 		// void	handle_pollout(const pollfd_t& pollfd);
 		
+		
+		/**
+		 * @brief the main loop where the select() is. select() is being called in every loop
+		 * to select readied fd to be read or write from read and write fd pool. After select()
+		 * both of the pools will be left with fds which are readied.
+		 */
 		void	main_loop_select(void);
+		
+		/**
+		 * @brief accept connection if fd is a socket
+		 * 
+		 * @param fd socket fd
+		 * @param maxfd to modify the maxfd value if client fd is larger
+		 */
 		void	accept_connection_select(int fd, int* maxfd);
+		
+		/**
+		 * @brief handle readied fds by looping from 0 to maxfd to see which fd is readied to be read
+		 * 
+		 * @param fd client fd
+		 */
 		void	handle_pollin_select(int fd);
+		
+		/**
+		 * @brief handle readied fds by looping from 0 to maxfd to see which fd is readied to be written
+		 * 
+		 * @param fd client fd
+		 */
 		void	handle_pollout_select(int fd);
 		
+		/**
+		 * @brief read client fd
+		 * 
+		 * @param fd client fd
+		 * @return std::string request message
+		 */
 		std::string			read_request(int fd);
+		
+		/**
+		 * @brief check if its a socketfd
+		 * 
+		 * @param fd client fd
+		 * @return true if fd is a socket
+		 * @return false if fd is not a socket
+		 */
 		bool				is_socketfd(int fd) const;
 		
+		/**
+		 * @brief Get the socket from matching fd
+		 * 
+		 * @param fd client fd
+		 * @return std::vector<Socket>::iterator 
+		 */
 		std::vector<Socket>::iterator	get_socket_from_fd(int fd);
 		
-		std::vector<pollfd_t>		_fds; // poll()
+		// std::vector<pollfd_t>		_fds; // poll()
 		std::vector<Socket>			_sockets;
 		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
 		std::map<int, ServerConfig>	_fd_sconfig;
