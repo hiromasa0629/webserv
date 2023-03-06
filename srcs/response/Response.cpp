@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 21:30:19 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 21:58:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -361,14 +361,14 @@ std::string	Response::get_body(void)
 		
 		if (this->_body.size() > MSG_BUFFER)
 		{
-			chunked_body.append(utils::itoa(MSG_BUFFER)).append("\r\n");
+			chunked_body.append(utils::to_hex(MSG_BUFFER)).append("\r\n");
 			chunked_body.append(this->_body.c_str(), MSG_BUFFER).append("\r\n");
 			this->_body = this->_body.substr(MSG_BUFFER);
 		}
 		else
 		{
 			// std::cout << "here" << std::endl;
-			chunked_body.append(utils::itoa(this->_body.size())).append("\r\n");
+			chunked_body.append(utils::to_hex(this->_body.size())).append("\r\n");
 			chunked_body.append(this->_body.c_str(), this->_body.size()).append("\r\n");
 			chunked_body.append("0\r\n\r\n");
 			this->_is_complete_response = true;

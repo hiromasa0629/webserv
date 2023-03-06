@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 20:01:28 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 21:56:16 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,6 +77,7 @@ void									charvec_shrink_to_fit(CharVec& cv);
 
 void									print_msg_with_crlf(const std::string& s);
 std::string								itoa(size_t i);
+std::string								to_hex(size_t i);
 
 }
 
