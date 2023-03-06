@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 21:29:15 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 23:03:15 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@
 # include "ResponseForm.hpp"
 # include <exception>
 
-# define MSG_BUFFER 500000
+# define MSG_BUFFER 65536
 
 class Response {
 	public:
@@ -32,7 +32,7 @@ class Response {
 		Response(enum StatusCode status, const ServerConfig& sconfig);
 		// Response(int error_code, const ServerConfig& sconfig);
 		~Response(void);
-		
+
 		std::string				get_response_header(void) const;
 		std::string				get_body(void);
 		std::string				get_chunked_msg(void);
@@ -51,11 +51,11 @@ class Response {
 		void	handle_upload(void);
 		bool	is_localhost(void) const;
 		void	print_directives(void) const;
-		
+
 		void	read_path(void);
-		
+
 		void	remove_trailing_slash(std::string& path);
-		
+
 		// std::string				construct(void) const;
 		// void					construct_chunked_body(void);
 
@@ -66,7 +66,7 @@ class Response {
 
 		ResponseHeader							_header;
 		ResponseAutoindex						_autoindex;
-		
+
 		utils::StrToStrVecMap					_s_directives;
 		utils::StrToStrVecMap					_l_directives;
 		utils::StrToStrVecMap					_directives;
@@ -74,20 +74,20 @@ class Response {
 		std::string								_uri;
 		std::string								_location_uri;
 		std::string								_rest_of_the_uri;
-		
+
 		std::string								_host;
 		std::string								_port;
 		int										_request_body_size;
 		std::string								_body;
 		std::string								_chunked_body;
 		std::string								_method;
-		
+
 		std::string								_response_msg;
-		
+
 		bool									_is_autoindex;
 		bool									_is_redirection;
 		bool									_is_upload;
-		
+
 		Logger									_logger;
 };
 

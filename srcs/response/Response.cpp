@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 21:58:04 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 23:09:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,12 @@
 
 Response::Response(void)
 {
-	
+
 }
 
 Response::~Response(void)
 {
-	
+
 }
 
 Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is_complete_response(true), _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
@@ -30,10 +30,10 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is
 	this->_body					= this->_request.get_body();
 	this->_request_body_size	= this->_body.size();
 	this->_method				= this->_request.get_request_field(METHOD);
-	
+
 	this->set_directives(sconfig);
 	this->set_path();
-	
+
 	if (this->_directives.find("return") != this->_directives.end())
 		this->_is_redirection = true;
 	if (this->_directives.find("autoindex") != this->_directives.end() && this->_directives.find("autoindex")->second[0] == "on")
@@ -48,9 +48,9 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is
 	// std::cout << "is_redirection : " << _is_redirection << std::endl;
 	// std::cout << "_is_autoindex : " << _is_autoindex << std::endl;
 	// std::cout << "_is_upload : " << _is_upload << std::endl;
-	
+
 	this->has_handled_error();
-	
+
 	// if (this->has_handled_error())
 	// 	this->handle_error();
 	if (this->is_cgi())
@@ -63,34 +63,34 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is
 		this->handle_upload();
 	else
 		this->handle_normal();
-	
+
 	if (this->_body.size() > MSG_BUFFER)
 	{
 		this->_is_complete_response = false;
-		
+
 		this->_header.set_is_chunked(true);
 		this->_header.set_status(200);
 		this->_header.set_content_length(0);
 		this->_header.set_content_type("image/jpg");
 		this->_header.construct();
 	}
-	
-	
+
+
 	std::stringstream	ss;
-	
+
 	ss << this->_header.get_status() << " " << this->_path;
 	this->_logger.info(ss.str());
 }
 
 Response::Response(enum StatusCode status, const ServerConfig& sconfig) : _is_complete_response(true)
-{	
+{
 	utils::StrVec	vec;
 	std::string		root;
-	
+
 	this->set_directives(sconfig);
 	this->_header.set_status(status);
 	// this->handle_error();
-	
+
 	if (this->_directives.count("error_page") > 0)
 	{
 		vec = this->_directives.at("error_page");
@@ -113,17 +113,13 @@ Response::Response(enum StatusCode status, const ServerConfig& sconfig) : _is_co
 	this->_header.set_location("");
 	this->_header.set_content_length(this->_body.size());
 	this->_header.construct();
-	
+
 	// this->construct();
 }
 
-// void	Response::handle_error(void)
-// {
-// }
-
 void	Response::handle_cgi(void)
 {
-	
+
 }
 
 void	Response::handle_upload(void)
@@ -133,7 +129,7 @@ void	Response::handle_upload(void)
 	std::vector<ResponseFormField>::iterator	it;
 	std::ofstream								outfile;
 	std::string									tmp_path;
-	
+
 	form = ResponseForm(this->_body, this->_request.get_request_field(BOUNDARY));
 	this->_path.clear();
 	this->_path.append(this->_directives["upload"][0]);
@@ -153,7 +149,7 @@ void	Response::handle_upload(void)
 		outfile.write(it->get_value().c_str(), it->get_value().size());
 		outfile.close();
 	}
-	
+
 	this->_header.set_status(200);
 	this->_header.set_content_length(0);
 	this->_header.set_location("");
@@ -165,9 +161,9 @@ void	Response::handle_normal(void)
 	std::ifstream	infile;
 	std::string		line;
 	this->_header.set_status(200);
-	
+
 	this->read_path();
-	
+
 	this->_header.set_content_length(this->_body.size());
 	this->_header.set_location("");
 	this->_header.construct();
@@ -177,7 +173,7 @@ void	Response::handle_autoindex(void)
 {
 	std::ifstream	infile;
 	DIR*			dir;
-	
+
 	this->_path.clear();
 	this->_path.append(this->_directives["root"][0]);
 	this->remove_trailing_slash(this->_path);
@@ -203,7 +199,7 @@ void	Response::handle_autoindex(void)
 		}
 		else if (!dir)
 		{
-			// this->_header.set_status(404); 	
+			// this->_header.set_status(404);
 			// this->handle_error();
 			throw ServerErrorException(__LINE__, __FILE__, E404, "Not found");
 			// return ;
@@ -222,14 +218,14 @@ void	Response::handle_redirect(void)
 {
 	std::stringstream	ss;
 	std::string			redirect;
-	
+
 	redirect = this->_directives["return"][0];
 	ss << "http://";
 	ss << this->_host << ":" << this->_port;
 	if (redirect.front() != '/')
 		redirect.insert(redirect.begin(), '/');
 	ss << redirect;
-	
+
 	this->_header.set_content_length(0);
 	this->_header.set_location(ss.str());
 	this->_header.set_status(301);
@@ -239,7 +235,7 @@ void	Response::handle_redirect(void)
 void	Response::has_handled_error(void)
 {
 	utils::StrToStrVecMap::iterator	it;
-	
+
 	// Handle invalid request
 	if (this->_request.get_status_code() != S200)
 		throw ServerErrorException(__LINE__, __FILE__, this->_request.get_status_code(), "Invalid Request");
@@ -248,7 +244,7 @@ void	Response::has_handled_error(void)
 	if (it != this->_directives.end())
 	{
 		utils::StrVec	sv;
-		
+
 		sv = it->second;
 		if (!std::count(sv.begin(), sv.end(), "_") && !std::count(sv.begin(), sv.end(), this->_host) && !this->is_localhost())
 			throw ServerErrorException(__LINE__, __FILE__, E404, "Invalid server_name");
@@ -286,7 +282,7 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	size_t											second_slash_index;
 	ServerConfig::StrToLConfigMap::const_iterator	it;
 	utils::StrToStrVecMap::const_iterator			it2;
-	
+
 	this->_s_directives = sconfig.get_directives();
 	this->_directives = this->_s_directives;
 	if (this->_uri.empty())
@@ -311,7 +307,7 @@ void	Response::set_directives(const ServerConfig& sconfig)
 void	Response::set_path(void)
 {
 	std::string	path;
-	
+
 	if (!this->_l_directives.size()) // No matching location block
 	{
 		path.append(this->_directives.at("root")[0]);
@@ -349,7 +345,7 @@ bool	Response::is_cgi(void)
 }
 
 std::string	Response::get_response_header(void) const
-{	
+{
 	return (this->_header.get_response_header());
 }
 
@@ -358,7 +354,13 @@ std::string	Response::get_body(void)
 	if (!this->_is_complete_response)
 	{
 		std::string	chunked_body;
-		
+
+		if  (this->_body.empty())
+		{
+			chunked_body.append("0\r\n\r\n");
+			this->_is_complete_response = true;
+			return (chunked_body);
+		}
 		if (this->_body.size() > MSG_BUFFER)
 		{
 			chunked_body.append(utils::to_hex(MSG_BUFFER)).append("\r\n");
@@ -367,11 +369,9 @@ std::string	Response::get_body(void)
 		}
 		else
 		{
-			// std::cout << "here" << std::endl;
 			chunked_body.append(utils::to_hex(this->_body.size())).append("\r\n");
 			chunked_body.append(this->_body.c_str(), this->_body.size()).append("\r\n");
-			chunked_body.append("0\r\n\r\n");
-			this->_is_complete_response = true;
+			this->_body = this->_body.substr(this->_body.size());
 		}
 		return (chunked_body);
 	}
@@ -386,9 +386,9 @@ std::string	Response::get_chunked_msg(void)
 		this->_is_complete_response = true;
 		return (this->_response_msg);
 	}
-	
+
 	std::string	tmp;
-	
+
 	tmp = this->_response_msg.substr(0, MSG_BUFFER);
 	this->_body = this->_response_msg.substr(MSG_BUFFER);
 	return (tmp);
@@ -424,7 +424,7 @@ void	Response::read_path(void)
 	std::ifstream	infile;
 	std::string		line;
 	char			c;
-	
+
 	infile.open(this->_path);
 	// std::cout << "this->_path: " << this->_path << std::endl;
 	if (!infile.good())
@@ -463,7 +463,7 @@ void	Response::remove_trailing_slash(std::string& path)
 // {
 // 	std::string	tmp;
 // 	std::string	body;
-	
+
 // 	body = this->_body;
 // 	while (body.size() > 0)
 // 	{

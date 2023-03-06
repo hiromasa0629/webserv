@@ -6,14 +6,14 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 22:04:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 23:05:56 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "utils.hpp"
 
 namespace utils {
-	
+
 bool	is_whitespaces(char c)
 {
 	for (int i = 0; i < 6; i++)
@@ -35,7 +35,7 @@ StrVec	ft_split(const std::string& s)
 	std::stringstream			ss(s);
 	std::string					word;
 	StrVec						res;
-	
+
 	while (ss >> word)
 		res.push_back(word);
 	return (res);
@@ -45,7 +45,7 @@ bool	is_valid_server_directives(std::string s)
 {
 	size_t				size;
 	size_t				i;
-	
+
 	size = sizeof(default_server_directives)/sizeof(default_server_directives[0]);
 	i = 0;
 	while (i < size)
@@ -58,7 +58,7 @@ bool	is_valid_location_directives(std::string s)
 {
 	size_t				size;
 	size_t				i;
-	
+
 	size = sizeof(default_location_directives)/sizeof(default_location_directives[0]);
 	i = 0;
 	while (i < size)
@@ -93,7 +93,7 @@ void	print_msg_with_crlf(const std::string& s)
 std::string	itoa(size_t i)
 {
 	std::stringstream	ss;
-	
+
 	ss << i;
 	return (ss.str());
 }
@@ -101,7 +101,7 @@ std::string	itoa(size_t i)
 std::string	to_hex(size_t i)
 {
 	std::stringstream	ss;
-	
+
 	ss << std::hex << std::uppercase << i;
 	// std::cout << ss.str() << std::endl;
 	return (ss.str());
