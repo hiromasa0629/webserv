@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 19:24:44 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 19:20:52 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,6 +126,7 @@ class Server {
 		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
 		std::map<int, ServerConfig>	_fd_sconfig;
 		std::map<int, TmpRequest>	_fd_requests;
+		std::map<int, Response>		_fd_response;
 		timeval_t					_timeval;
 		Logger						_logger;
 		// bool						_is_server_error;

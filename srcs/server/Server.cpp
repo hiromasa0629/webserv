@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 20:03:40 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 21:46:06 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -305,48 +305,75 @@ void	Server::handle_pollout_select(int fd)
 {
 	this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
 	Response		response;
+	std::string		response_msg;
 	std::string		body;
 	std::string		header;
 	std::string		res;
 
 	try
 	{
-		response = Response(this->_fd_requests[fd], this->_fd_sconfig[fd]);
-		header = response.get_response_header();
-		body = response.get_body();
-		res.append(header).append(body);
+		if (this->_fd_response.count(fd) == 0)
+		{
+			this->_fd_response.insert(std::make_pair(fd, Response(this->_fd_requests[fd], this->_fd_sconfig[fd])));
+			// header = this->_fd_response[fd].get_response_header();
+			// body = this->_fd_response[fd].get_body();
+			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
+		}
+		else
+			res.append(this->_fd_response[fd].get_body());
+		// response = Response(this->_fd_requests[fd], this->_fd_sconfig[fd]);
+		// body = response.get_chunked_body();
+		// response_msg = this->_fd_response[fd].get_chunked_msg();
+		std::cout << "res.size(): " << res.size() << std::endl;
 		send(fd, res.c_str(), res.size(), 0);
-		if (close(fd) != 0)
-			throw std::runtime_error(std::to_string(__LINE__) + " close error");
+		if (this->_fd_response[fd].get_is_complete_response())
+			if (close(fd) != 0)
+				throw std::runtime_error(std::to_string(__LINE__) + " close error");
 	}
 	catch (const ServerErrorException& e)
-	{
+	{	
 		this->_logger.warn(e.what());
-		response = Response(e.get_status(), this->_fd_sconfig[fd]);
-		header = response.get_response_header();
-		body = response.get_body();
-		res.append(header).append(body);
+		if (this->_fd_response.count(fd) == 0)
+		{
+			this->_fd_response.insert(std::make_pair(fd, Response(e.get_status(), this->_fd_sconfig[fd])));
+			// header = this->_fd_response[fd].get_response_header();
+			// body = this->_fd_response[fd].get_body();
+			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
+		}
+		else
+			res.append(this->_fd_response[fd].get_body());
 		send(fd, res.c_str(), res.size(), 0);
-		if (close(fd) != 0)
-			throw std::runtime_error(std::to_string(__LINE__) + " close error");
+		if (this->_fd_response[fd].get_is_complete_response())
+			if (close(fd) != 0)
+				throw std::runtime_error(std::to_string(__LINE__) + " close error");
 	}
 	catch (const std::exception& e)
 	{
 		this->_logger.warn(e.what());
-		response = Response(E500, this->_fd_sconfig[fd]);
-		header = response.get_response_header();
-		body = response.get_body();
-		res.append(header).append(body);
+		if (this->_fd_response.count(fd) == 0)
+		{
+			this->_fd_response.insert(std::make_pair(fd, Response(this->_fd_requests[fd], this->_fd_sconfig[fd])));
+			// header = this->_fd_response[fd].get_response_header();
+			// body = this->_fd_response[fd].get_body();
+			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
+		}
+		else
+			res.append(this->_fd_response[fd].get_body());
 		send(fd, res.c_str(), res.size(), 0);
-		if (close(fd) != 0)
-			throw std::runtime_error(std::to_string(__LINE__) + " close error");
+		if (this->_fd_response[fd].get_is_complete_response())
+			if (close(fd) != 0)
+				throw std::runtime_error(std::to_string(__LINE__) + " close error");
 	}
 	
 	// send(fd, _example_res, std::strlen(_example_res), 0);
 	// if (close(fd) != 0)
 	// 	throw std::runtime_error("Pollout select close");
-	FD_CLR(fd, &this->_fd_sets.second);
-	this->_fd_requests.erase(fd);
+	if (this->_fd_response[fd].get_is_complete_response())
+	{
+		FD_CLR(fd, &this->_fd_sets.second);
+		this->_fd_requests.erase(fd);
+		this->_fd_response.erase(fd);
+	}
 }
 
 void	Server::main_loop_select(void)

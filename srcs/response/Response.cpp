@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 19:58:22 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 21:30:19 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ Response::~Response(void)
 	
 }
 
-Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
+Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is_complete_response(true), _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
 {
 	this->_uri					= this->_request.get_request_field(URI);
 	this->_host					= this->_request.get_request_field(SERVER_NAME);
@@ -63,14 +63,26 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _re
 		this->handle_upload();
 	else
 		this->handle_normal();
-
+	
+	if (this->_body.size() > MSG_BUFFER)
+	{
+		this->_is_complete_response = false;
+		
+		this->_header.set_is_chunked(true);
+		this->_header.set_status(200);
+		this->_header.set_content_length(0);
+		this->_header.set_content_type("image/jpg");
+		this->_header.construct();
+	}
+	
+	
 	std::stringstream	ss;
 	
 	ss << this->_header.get_status() << " " << this->_path;
 	this->_logger.info(ss.str());
 }
 
-Response::Response(enum StatusCode status, const ServerConfig& sconfig)
+Response::Response(enum StatusCode status, const ServerConfig& sconfig) : _is_complete_response(true)
 {	
 	utils::StrVec	vec;
 	std::string		root;
@@ -101,6 +113,8 @@ Response::Response(enum StatusCode status, const ServerConfig& sconfig)
 	this->_header.set_location("");
 	this->_header.set_content_length(this->_body.size());
 	this->_header.construct();
+	
+	// this->construct();
 }
 
 // void	Response::handle_error(void)
@@ -339,9 +353,50 @@ std::string	Response::get_response_header(void) const
 	return (this->_header.get_response_header());
 }
 
-std::string	Response::get_body(void) const
+std::string	Response::get_body(void)
 {
-	return (this->_body);
+	if (!this->_is_complete_response)
+	{
+		std::string	chunked_body;
+		
+		if (this->_body.size() > MSG_BUFFER)
+		{
+			chunked_body.append(utils::itoa(MSG_BUFFER)).append("\r\n");
+			chunked_body.append(this->_body.c_str(), MSG_BUFFER).append("\r\n");
+			this->_body = this->_body.substr(MSG_BUFFER);
+		}
+		else
+		{
+			// std::cout << "here" << std::endl;
+			chunked_body.append(utils::itoa(this->_body.size())).append("\r\n");
+			chunked_body.append(this->_body.c_str(), this->_body.size()).append("\r\n");
+			chunked_body.append("0\r\n\r\n");
+			this->_is_complete_response = true;
+		}
+		return (chunked_body);
+	}
+	else
+		return (this->_body);
+}
+
+std::string	Response::get_chunked_msg(void)
+{
+	if (this->_response_msg.size() <= MSG_BUFFER)
+	{
+		this->_is_complete_response = true;
+		return (this->_response_msg);
+	}
+	
+	std::string	tmp;
+	
+	tmp = this->_response_msg.substr(0, MSG_BUFFER);
+	this->_body = this->_response_msg.substr(MSG_BUFFER);
+	return (tmp);
+}
+
+bool	Response::get_is_complete_response(void) const
+{
+	return (this->_is_complete_response);
 }
 
 bool	Response::is_localhost(void) const
@@ -399,3 +454,31 @@ void	Response::remove_trailing_slash(std::string& path)
 		path.pop_back();
 }
 
+// std::string	Response::construct(void) const
+// {
+// 	return (std::string().append(this->get_response_header()).append(this->_body));
+// }
+
+// void	Response::construct_chunked_body(void)
+// {
+// 	std::string	tmp;
+// 	std::string	body;
+	
+// 	body = this->_body;
+// 	while (body.size() > 0)
+// 	{
+// 		if (body.size() > MSG_BUFFER)
+// 		{
+// 			tmp.append(utils::itoa(MSG_BUFFER)).append("\r\n");
+// 			tmp.append(body, MSG_BUFFER).append("\r\n");
+// 			body = body.substr(MSG_BUFFER);
+// 		}
+// 		else
+// 		{
+// 			tmp.append(utils::itoa(body.size())).append("\r\n");
+// 			tmp.append(body, body.size()).append("\r\n");
+// 			body = body.substr(body.size());
+// 		}
+// 	}
+// 	tmp.append(0);
+// }

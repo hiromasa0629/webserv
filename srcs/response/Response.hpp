@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 19:37:25 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/06 21:29:15 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,8 @@
 # include "ResponseForm.hpp"
 # include <exception>
 
+# define MSG_BUFFER 500000
+
 class Response {
 	public:
 		Response(void);
@@ -32,7 +34,9 @@ class Response {
 		~Response(void);
 		
 		std::string				get_response_header(void) const;
-		std::string				get_body(void) const;
+		std::string				get_body(void);
+		std::string				get_chunked_msg(void);
+		bool					get_is_complete_response(void) const;
 
 	private:
 		void	has_handled_error(void);
@@ -51,6 +55,11 @@ class Response {
 		void	read_path(void);
 		
 		void	remove_trailing_slash(std::string& path);
+		
+		// std::string				construct(void) const;
+		// void					construct_chunked_body(void);
+
+		bool									_is_complete_response;
 
 		TmpRequest								_request;
 		std::string								_path;
@@ -70,7 +79,10 @@ class Response {
 		std::string								_port;
 		int										_request_body_size;
 		std::string								_body;
+		std::string								_chunked_body;
 		std::string								_method;
+		
+		std::string								_response_msg;
 		
 		bool									_is_autoindex;
 		bool									_is_redirection;
