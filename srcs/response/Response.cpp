@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 23:09:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 20:59:17 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,27 +19,33 @@ Response::Response(void)
 
 Response::~Response(void)
 {
-
+	for (size_t i = 0; this->_envp[i] != NULL; i++)
+		delete[] this->_envp[i];
 }
 
-Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is_complete_response(true), _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
+Response::Response(const TmpRequest& request, const ServerConfig& sconfig, char** envp) : _is_complete_response(true), _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
 {
 	this->_uri					= this->_request.get_request_field(URI);
 	this->_host					= this->_request.get_request_field(SERVER_NAME);
 	this->_port					= this->_request.get_request_field(PORT);
-	this->_body					= this->_request.get_body();
-	this->_request_body_size	= this->_body.size();
+	this->_request_body			= this->_request.get_body();
+	this->_request_body_size	= this->_request_body.size();
 	this->_method				= this->_request.get_request_field(METHOD);
+	this->_envp					= envp;
+	
+
 
 	this->set_directives(sconfig);
-	this->set_path();
 
 	if (this->_directives.find("return") != this->_directives.end())
 		this->_is_redirection = true;
 	if (this->_directives.find("autoindex") != this->_directives.end() && this->_directives.find("autoindex")->second[0] == "on")
 		this->_is_autoindex = true;
-	if (this->_directives.find("upload") != this->_directives.end() && this->_method == "POST")
+	if (this->_directives.find("upload") != this->_directives.end() && (this->_method == "POST" || this->_method == "PUT"))
 		this->_is_upload = true;
+		
+	if (!this->_is_autoindex && !this->_is_upload)
+		this->set_path();
 
 	// std::cout << "here4" << std::endl;
 	// std::cout << std::boolalpha;
@@ -64,12 +70,12 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is
 	else
 		this->handle_normal();
 
-	if (this->_body.size() > MSG_BUFFER)
+	if (this->_response_body.size() > MSG_BUFFER)
 	{
 		this->_is_complete_response = false;
 
 		this->_header.set_is_chunked(true);
-		this->_header.set_status(200);
+		this->_header.set_status(S200);
 		this->_header.set_content_length(0);
 		this->_header.set_content_type("image/jpg");
 		this->_header.construct();
@@ -85,7 +91,7 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig) : _is
 Response::Response(enum StatusCode status, const ServerConfig& sconfig) : _is_complete_response(true)
 {
 	utils::StrVec	vec;
-	std::string		root;
+	// std::string		root;
 
 	this->set_directives(sconfig);
 	this->_header.set_status(status);
@@ -95,23 +101,18 @@ Response::Response(enum StatusCode status, const ServerConfig& sconfig) : _is_co
 	{
 		vec = this->_directives.at("error_page");
 		this->_path.clear();
-		root = this->_directives.at("root")[0];
-		if (this->_l_directives.count("error_page") > 0 && this->_l_directives.count("root") == 0)
-			root.append(this->_location_uri);
-		if (root.back() != '/')
-			root.append("/");
 		for (size_t i = 0; i < vec.size(); i++)
 		{
 			if (std::atoi(vec[i++].c_str()) == this->_header.get_status())
 			{
-				this->_path.append(root).append(vec[i]);
+				this->_path = vec[i];
 				break ;
 			}
 		}
 		this->read_path();
 	}
 	this->_header.set_location("");
-	this->_header.set_content_length(this->_body.size());
+	this->_header.set_content_length(this->_response_body.size());
 	this->_header.construct();
 
 	// this->construct();
@@ -119,7 +120,13 @@ Response::Response(enum StatusCode status, const ServerConfig& sconfig) : _is_co
 
 void	Response::handle_cgi(void)
 {
-
+	utils::StrVec	cgis;
+	ResponseCgi		rcgi;
+	
+	cgis = this->_directives.at("cgi");
+	for (size_t i = 0; i < cgis.size(); i++)
+		if (this->_path.substr(this->_path.length() - 3, this->_path.length()) == cgis[i++])
+			rcgi = ResponseCgi(this->_path, this->_request_body, cgis[i], this->_envp);
 }
 
 void	Response::handle_upload(void)
@@ -130,41 +137,53 @@ void	Response::handle_upload(void)
 	std::ofstream								outfile;
 	std::string									tmp_path;
 
-	form = ResponseForm(this->_body, this->_request.get_request_field(BOUNDARY));
-	this->_path.clear();
-	this->_path.append(this->_directives["upload"][0]);
-	rff = form.get_fields();
-	it = rff.begin();
-	for (; it < rff.end(); it++)
+	if (this->_method == "POST")
 	{
-		if (!it->get_is_file())
-			continue ;
-		tmp_path = this->_path + "/" + it->get_filename();
-		outfile.open(tmp_path, std::ofstream::out);
-		// if (outfile.is_open())
-		// {
-		// 	this->_logger.warn("Outfile is opened " + std::to_string(123));
-		// 	std::cout << "outfile opened" << std::endl;
-		// }
-		outfile.write(it->get_value().c_str(), it->get_value().size());
+		form = ResponseForm(this->_request_body, this->_request.get_request_field(BOUNDARY));
+		this->_path.clear();
+		this->_path.append(this->_directives["upload"][0]);
+		rff = form.get_fields();
+		it = rff.begin();
+		for (; it < rff.end(); it++)
+		{
+			if (!it->get_is_file())
+				continue ;
+			tmp_path = this->_path + "/" + it->get_filename();
+			outfile.open(tmp_path, std::ofstream::out);
+			outfile.write(it->get_value().c_str(), it->get_value().size());
+			outfile.close();
+		}
+		this->_header.set_status(S200);
+		this->_header.set_content_length(0);
+		this->_header.set_location("");
+		this->_header.construct();
+	}
+	else if (this->_method == "PUT")
+	{
+		this->_path.clear();
+		this->_path.append(this->_directives["upload"][0]);
+		outfile.open(this->_path.append("/").append(this->_uri.substr(this->_uri.find_last_of('/') + 1)), std::ofstream::out);
+		outfile.write(this->_request_body.c_str(), this->_request_body_size);
 		outfile.close();
+		
+		this->_header.set_status(S200);
+		this->_header.set_content_length(0);
+		this->_header.set_location("http://" + this->_host + ":" + this->_port + "/" + this->_path);
+		this->_header.construct();
 	}
 
-	this->_header.set_status(200);
-	this->_header.set_content_length(0);
-	this->_header.set_location("");
-	this->_header.construct();
+
 }
 
 void	Response::handle_normal(void)
 {
 	std::ifstream	infile;
 	std::string		line;
-	this->_header.set_status(200);
+	this->_header.set_status(S200);
 
 	this->read_path();
 
-	this->_header.set_content_length(this->_body.size());
+	this->_header.set_content_length(this->_response_body.size());
 	this->_header.set_location("");
 	this->_header.construct();
 }
@@ -206,11 +225,11 @@ void	Response::handle_autoindex(void)
 		}
 	}
 	this->_autoindex = ResponseAutoindex(this->_path, this->_rest_of_the_uri, this->_host, this->_port, this->_location_uri);
-	this->_body = this->_autoindex.get_body();
+	this->_response_body = this->_autoindex.get_body();
 
-	this->_header.set_content_length(this->_body.size());
+	this->_header.set_content_length(this->_response_body.size());
 	this->_header.set_location("");
-	this->_header.set_status(200);
+	this->_header.set_status(S200);
 	this->_header.construct();
 }
 
@@ -228,7 +247,7 @@ void	Response::handle_redirect(void)
 
 	this->_header.set_content_length(0);
 	this->_header.set_location(ss.str());
-	this->_header.set_status(301);
+	this->_header.set_status(S301);
 	this->_header.construct();
 }
 
@@ -258,18 +277,18 @@ void	Response::has_handled_error(void)
 	if (it != this->_directives.end() && std::atoi(it->second[0].c_str()) < this->_request_body_size)
 		throw ServerErrorException(__LINE__, __FILE__, E413, "Body size too large");
 	// try open path if not (autoindex and redirection)
-	if (!this->_is_autoindex && !this->_is_redirection && this->_method == "GET")
-	{
-		std::ifstream					infile;
+	// if (!this->_is_autoindex && !this->_is_redirection && this->_method == "GET")
+	// {
+	// 	std::ifstream					infile;
 
-		infile.open(this->_path);
-		if (!infile.good())
-		{
-			infile.open(this->_path + ".html");
-			if (!infile.good())
-				throw ServerErrorException(__LINE__, __FILE__, E404, "Path not found " + this->_path);
-		}
-	}
+	// 	infile.open(this->_path);
+	// 	if (!infile.good())
+	// 	{
+	// 		infile.open(this->_path + ".html");
+	// 		if (!infile.good())
+	// 			throw ServerErrorException(__LINE__, __FILE__, E404, "Path not found " + this->_path);
+	// 	}
+	// }
 #if DEBUG
 	this->_logger.debug("Passed error handle");
 #endif
@@ -333,14 +352,48 @@ void	Response::set_path(void)
 		}
 	}
 	this->_path = path;
+	
+	if (this->_method == "PUT")
+		return ;
+	
+	std::ifstream	infile;
+	
+	infile.open(this->_path);
+	// std::cout << "this->_path: " << this->_path << std::endl;
+	if (!infile.good())
+	{
+		infile.open(this->_path + ".html");
+		if (!infile.good())
+			throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " read_path failed");
+		else
+			this->_path.append(".html");
+	}
+	else if (opendir(this->_path.c_str()) != NULL)
+	{
+		if (this->_directives.count("index") == 0)
+			throw ServerErrorException(__LINE__, __FILE__, E403, this->_path + " read_path is a directory");	
+		infile.close();
+		infile.open(this->_path.append("/").append(this->_directives["index"][0]));
+		if (!infile.good())
+			throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " read_path failed");
+		else
+			this->_path.append("/").append(this->_directives["index"][0]);
+	}
 }
 
 bool	Response::is_cgi(void)
 {
 	if (this->_path.length() < 3)
 		return (false);
-	if (this->_path.substr(this->_path.length() - 3, this->_path.length()) == ".py")
-		return (true);
+	if (this->_directives.count("cgi") == 0)
+		return (false);
+	
+	utils::StrVec	cgis;
+	
+	cgis = this->_directives["cgi"];
+	for (size_t i = 0; i < cgis.size(); i++)
+		if (this->_path.substr(this->_path.length() - 3, this->_path.length()) == cgis[i++])
+			return (true);
 	return (false);
 }
 
@@ -355,43 +408,31 @@ std::string	Response::get_body(void)
 	{
 		std::string	chunked_body;
 
-		if  (this->_body.empty())
+		if  (this->_response_body.empty())
 		{
 			chunked_body.append("0\r\n\r\n");
 			this->_is_complete_response = true;
 			return (chunked_body);
 		}
-		if (this->_body.size() > MSG_BUFFER)
+		if (this->_response_body.size() > MSG_BUFFER)
 		{
 			chunked_body.append(utils::to_hex(MSG_BUFFER)).append("\r\n");
-			chunked_body.append(this->_body.c_str(), MSG_BUFFER).append("\r\n");
-			this->_body = this->_body.substr(MSG_BUFFER);
+			chunked_body.append(this->_response_body.c_str(), MSG_BUFFER).append("\r\n");
+			this->_response_body = this->_response_body.substr(MSG_BUFFER);
 		}
 		else
 		{
-			chunked_body.append(utils::to_hex(this->_body.size())).append("\r\n");
-			chunked_body.append(this->_body.c_str(), this->_body.size()).append("\r\n");
-			this->_body = this->_body.substr(this->_body.size());
+			chunked_body.append(utils::to_hex(this->_response_body.size())).append("\r\n");
+			chunked_body.append(this->_response_body.c_str(), this->_response_body.size()).append("\r\n");
+			this->_response_body = this->_response_body.substr(this->_response_body.size());
 		}
+		std::cout << "response_body.size(): " << this->_response_body.size() << std::endl;
 		return (chunked_body);
 	}
+	else if (this->_method != "HEAD")
+		return (this->_response_body);
 	else
-		return (this->_body);
-}
-
-std::string	Response::get_chunked_msg(void)
-{
-	if (this->_response_msg.size() <= MSG_BUFFER)
-	{
-		this->_is_complete_response = true;
-		return (this->_response_msg);
-	}
-
-	std::string	tmp;
-
-	tmp = this->_response_msg.substr(0, MSG_BUFFER);
-	this->_body = this->_response_msg.substr(MSG_BUFFER);
-	return (tmp);
+		return ("");
 }
 
 bool	Response::get_is_complete_response(void) const
@@ -422,30 +463,39 @@ void	Response::print_directives(void) const
 void	Response::read_path(void)
 {
 	std::ifstream	infile;
-	std::string		line;
 	char			c;
 
 	infile.open(this->_path);
 	// std::cout << "this->_path: " << this->_path << std::endl;
-	if (!infile.good())
-	{
-		infile.open(this->_path.append(".html"));
-		if (!infile.good())
-		{
-			if (!this->_header.get_status())
-			{
-				this->_logger.warn("_path opened failed, defaulted to 404.html");
-				this->_header.set_status(404);
-			}
-			infile.open("files/error/404.html");
-		}
-	}
+	// if (!infile.good())
+	// {
+	// 	infile.open(this->_path.append(".html"));
+	// 	if (!infile.good())
+	// 	{
+	// 		if (!this->_header.get_status())
+	// 			throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " read_path failed");
+	// 		throw ServerErrorException(__LINE__, __FILE__, this->_header.get_status(), this->_path + " read_path failed");
+	// 	}
+	// }
+	// if (opendir(this->_path.c_str()) != NULL)
+	// {
+	// 	if (this->_directives.count("index") == 0)
+	// 		throw ServerErrorException(__LINE__, __FILE__, E403, this->_path + " read_path is a directory");	
+	// 	infile.close();
+	// 	infile.open(this->_path.append("/").append(this->_directives["index"][0]));
+	// 	if (!infile.good())
+	// 		throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " read_path failed");	
+	// }
 	while (infile.get(c))
 	{
 		if (infile.fail())
+		{
+			infile.close();
 			throw ServerErrorException(__LINE__, __FILE__, E500, "Read path error");
-		this->_body.push_back(c);
+		}
+		this->_response_body.push_back(c);
 	}
+	infile.close();
 }
 
 void	Response::remove_trailing_slash(std::string& path)

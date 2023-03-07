@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/11 15:47:11 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/19 17:08:05 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 20:30:30 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -104,6 +104,11 @@ void	Config::print_config(void)
 const Config::StrToSConfigMap&	Config::get_sconfig(void) const
 {
 	return (this->_sconfig);
+}
+
+const char**	Config::get_envp(void) const
+{
+	return (this->_envp);
 }
 
 Config::StrToSConfigMap::const_iterator	Config::find_sconfig_by_host_port(const std::string& newhost, const std::string& newport) const

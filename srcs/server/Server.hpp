@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 19:20:52 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 20:31:08 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ class Server {
 		typedef struct pollfd	pollfd_t;
 		typedef struct timeval	timeval_t;
 	
-		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config);
+		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config, char** envp);
 		~Server(void);
 		Server(const Server &src);
 		// Server	&operator=(const Server &rhs);
@@ -132,6 +132,8 @@ class Server {
 		// bool						_is_server_error;
 		
 		static const char*			_example_res;
+		
+		char**						_envp;
 		
 };
 

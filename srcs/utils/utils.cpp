@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 23:05:56 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 16:45:37 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,6 +105,16 @@ std::string	to_hex(size_t i)
 	ss << std::hex << std::uppercase << i;
 	// std::cout << ss.str() << std::endl;
 	return (ss.str());
+}
+
+size_t	to_int(std::string hex)
+{
+	std::stringstream	ss;
+	size_t				i;
+	
+	ss << std::hex << hex;
+	ss >> i;
+	return (i);
 }
 
 }

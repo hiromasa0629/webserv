@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:01:58 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 23:03:15 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 20:44:40 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,20 +22,22 @@
 # include "ResponseAutoindex.hpp"
 # include "ResponseForm.hpp"
 # include <exception>
+# include "ResponseCgi.hpp"
 
 # define MSG_BUFFER 65536
 
 class Response {
 	public:
 		Response(void);
-		Response(const TmpRequest& request, const ServerConfig& sconfig);
+		Response(const TmpRequest& request, const ServerConfig& sconfig, char** envp);
 		Response(enum StatusCode status, const ServerConfig& sconfig);
 		// Response(int error_code, const ServerConfig& sconfig);
 		~Response(void);
 
 		std::string				get_response_header(void) const;
 		std::string				get_body(void);
-		std::string				get_chunked_msg(void);
+		// std::string				get_response_msg(void);
+		// std::string				get_chunked_msg(void);
 		bool					get_is_complete_response(void) const;
 
 	private:
@@ -78,10 +80,13 @@ class Response {
 		std::string								_host;
 		std::string								_port;
 		int										_request_body_size;
-		std::string								_body;
-		std::string								_chunked_body;
+		std::string								_request_body;
+		char**									_envp;
+		// std::string								_body;
+		// std::string								_chunked_body;
 		std::string								_method;
 
+		std::string								_response_body;
 		std::string								_response_msg;
 
 		bool									_is_autoindex;

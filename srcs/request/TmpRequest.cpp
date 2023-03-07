@@ -6,13 +6,13 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/05 19:51:12 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 18:48:11 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "TmpRequest.hpp"
 
-const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE"};
+const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE", "HEAD", "PUT"};
 
 const char*	TmpRequest::_fields_string[] = {"method", "uri", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary"};
 
@@ -48,7 +48,7 @@ void	TmpRequest::append(const std::string& req)
 {
 	this->_req.append(req);
 #if DEBUG
-	utils::print_msg_with_crlf(this->_req);
+	// utils::print_msg_with_crlf(this->_req);
 #endif
 	if (!_is_complete_header)
 	{
@@ -58,7 +58,7 @@ void	TmpRequest::append(const std::string& req)
 		this->_is_complete_header = true;
 		this->_logger.debug("in is_complete_header");
 	}
-	if (this->_header_info[METHOD] == "POST")
+	if (this->_header_info[METHOD] == "POST" || this->_header_info[METHOD] == "PUT")
 		this->handle_post(req);
 	else
 		this->handle_get();
@@ -153,13 +153,13 @@ bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
 	if (vec.size() != 3)
 		return (false);
 	i = 0;
-	while (i < 3)
+	while (i < 5)
 	{
 		if (_methods[i] == vec.front())
 			break ;
 		i++;
 	}
-	if (i == 3)
+	if (i == 5)
 		return (false);
 	if (vec.back() != "HTTP/1.1")
 		return (false);
@@ -225,9 +225,10 @@ void	TmpRequest::handle_post(const std::string& req)
 			this->_chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 		else
 			this->_chunked_body.append(req);
-		if (this->_chunked_body.find("\r\n0\r\n\r\n") != std::string::npos)
+		// utils::print_msg_with_crlf(this->_chunked_body);
+		std::cout << "chunked_body.size(): " << this->_chunked_body.size() << std::endl;
+		if (this->_chunked_body.find("0\r\n\r\n") != std::string::npos)
 		{
-			std::cout << this->_chunked_body << std::endl;
 			this->_is_complete = true;
 			this->_body = this->tidy_up_chunked_body();
 		}
@@ -278,9 +279,8 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 	}
 	for (size_t i = 0; i < lines.size(); i++)
 	{
-		size = std::stoi(lines[i++]);
-		for (int j = 0; j < size; j++)
-			res.push_back(lines[i][j]);
+		size = utils::to_int(lines[i++]);
+		res.append(lines[i].c_str(), size);
 	}
 	return (res);
 }

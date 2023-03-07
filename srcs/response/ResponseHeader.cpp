@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 23:11:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 20:04:59 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,18 +14,19 @@
 
 ResponseHeader::ResponseHeader(void)
 {
-	this->_codes.insert(std::make_pair(404, "Not Found"));
-	this->_codes.insert(std::make_pair(405, "Method Not Allowed"));
-	this->_codes.insert(std::make_pair(500, "Internal Server Error"));
-	this->_codes.insert(std::make_pair(200, "OK"));
-	this->_codes.insert(std::make_pair(301, "Moved Permanently"));
-	this->_codes.insert(std::make_pair(413, "Request Entity Too Large"));
+	this->_codes.insert(std::make_pair(E404, "Not Found"));
+	this->_codes.insert(std::make_pair(E403, "Forbidden"));
+	this->_codes.insert(std::make_pair(E405, "Method Not Allowed"));
+	this->_codes.insert(std::make_pair(E500, "Internal Server Error"));
+	this->_codes.insert(std::make_pair(S200, "OK"));
+	this->_codes.insert(std::make_pair(S301, "Moved Permanently"));
+	this->_codes.insert(std::make_pair(E413, "Request Entity Too Large"));
 	this->_is_chunked = false;
 }
 
 ResponseHeader::~ResponseHeader(void) {}
 
-void	ResponseHeader::set_status(int status)
+void	ResponseHeader::set_status(enum StatusCode status)
 {
 	this->_status = status;
 }
@@ -41,7 +42,7 @@ void	ResponseHeader::construct(void)
 	ss << "Content-Type: text/html" << "\r\n";
 	if (this->_content_length != 0)
 		ss << "Content-Length: " << this->_content_length << "\r\n";
-	if (this->_status == 301)
+	if (!this->_location.empty())
 		ss << "Location: " << this->_location << "\r\n";
 	if (this->_is_chunked)
 		ss << "Transfer-Encoding: chunked" << "\r\n";
@@ -74,7 +75,7 @@ void	ResponseHeader::set_content_type(std::string type)
 	this->_content_type = type;
 }
 
-int	ResponseHeader::get_status(void) const
+enum StatusCode	ResponseHeader::get_status(void) const
 {
 	return (this->_status);
 }

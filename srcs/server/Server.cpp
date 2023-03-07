@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/06 23:04:30 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 21:02:21 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,13 +25,15 @@ Server::Server(void)
 	this->_timeval.tv_usec = TIMEOUT_USEC;
 }
 
-Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config) : _logger()
+Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config, char** envp) : _logger()
 {
 	Config::StrToSConfigMap::const_iterator	it;
 	Socket									tmp;
 
 	this->_timeval.tv_sec = TIMEOUT_SEC;
 	this->_timeval.tv_usec = TIMEOUT_USEC;
+	
+	this->_envp = envp;
 
 	it = config.get_sconfig().begin();
 	for (size_t i = 0; it != config.get_sconfig().end(); it++, i++)
@@ -145,7 +147,7 @@ std::string			Server::read_request(int fd)
 #if DEBUG
 		// std::cout << "ret: " << ret << ", size: " << res.size() << std::endl;
 #endif
-		if (ret < BUFFER_SIZE)
+		if (ret <= BUFFER_SIZE)
 			break ;
 		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
@@ -272,11 +274,11 @@ void	Server::handle_pollin_select(int fd)
 		if (!this->_fd_requests[fd].get_is_complete())
 		{
 #if DEBUG
-			std::cout << "NOT COMPLETE" << std::endl;
+			// std::cout << "NOT COMPLETE" << std::endl;
 #endif
 			return ;
 		}
-		this->_fd_requests[fd].print_request_header();
+		// this->_fd_requests[fd].print_request_header();
 	}
 	catch (const ServerErrorException& e)
 	{
@@ -314,12 +316,11 @@ void	Server::handle_pollout_select(int fd)
 	{
 		if (this->_fd_response.count(fd) == 0)
 		{
-			this->_fd_response.insert(std::make_pair(fd, Response(this->_fd_requests[fd], this->_fd_sconfig[fd])));
+			this->_fd_response.insert(std::make_pair(fd, Response(this->_fd_requests[fd], this->_fd_sconfig[fd], this->_envp)));
 			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
 		}
 		else
 			res.append(this->_fd_response[fd].get_body());
-		std::cout << "res.size(): " << res.size() << std::endl;
 		send(fd, res.c_str(), res.size(), 0);
 		if (this->_fd_response[fd].get_is_complete_response())
 			if (close(fd) != 0)
