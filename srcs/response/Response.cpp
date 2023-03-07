@@ -6,22 +6,15 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/17 15:03:20 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 20:59:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/07 23:18:18 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Response.hpp"
 
-Response::Response(void)
-{
+Response::Response(void) {}
 
-}
-
-Response::~Response(void)
-{
-	for (size_t i = 0; this->_envp[i] != NULL; i++)
-		delete[] this->_envp[i];
-}
+Response::~Response(void) {}
 
 Response::Response(const TmpRequest& request, const ServerConfig& sconfig, char** envp) : _is_complete_response(true), _request(request), _is_autoindex(false), _is_redirection(false), _is_upload(false)
 {
@@ -32,8 +25,6 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig, char*
 	this->_request_body_size	= this->_request_body.size();
 	this->_method				= this->_request.get_request_field(METHOD);
 	this->_envp					= envp;
-	
-
 
 	this->set_directives(sconfig);
 
@@ -43,17 +34,9 @@ Response::Response(const TmpRequest& request, const ServerConfig& sconfig, char*
 		this->_is_autoindex = true;
 	if (this->_directives.find("upload") != this->_directives.end() && (this->_method == "POST" || this->_method == "PUT"))
 		this->_is_upload = true;
-		
+
 	if (!this->_is_autoindex && !this->_is_upload)
 		this->set_path();
-
-	// std::cout << "here4" << std::endl;
-	// std::cout << std::boolalpha;
-	// std::cout << "has handled error : " << has_handled_error() << std::endl;
-	// std::cout << "is cgi : " << is_cgi() << std::endl;
-	// std::cout << "is_redirection : " << _is_redirection << std::endl;
-	// std::cout << "_is_autoindex : " << _is_autoindex << std::endl;
-	// std::cout << "_is_upload : " << _is_upload << std::endl;
 
 	this->has_handled_error();
 
@@ -122,7 +105,7 @@ void	Response::handle_cgi(void)
 {
 	utils::StrVec	cgis;
 	ResponseCgi		rcgi;
-	
+
 	cgis = this->_directives.at("cgi");
 	for (size_t i = 0; i < cgis.size(); i++)
 		if (this->_path.substr(this->_path.length() - 3, this->_path.length()) == cgis[i++])
@@ -165,7 +148,7 @@ void	Response::handle_upload(void)
 		outfile.open(this->_path.append("/").append(this->_uri.substr(this->_uri.find_last_of('/') + 1)), std::ofstream::out);
 		outfile.write(this->_request_body.c_str(), this->_request_body_size);
 		outfile.close();
-		
+
 		this->_header.set_status(S200);
 		this->_header.set_content_length(0);
 		this->_header.set_location("http://" + this->_host + ":" + this->_port + "/" + this->_path);
@@ -304,8 +287,6 @@ void	Response::set_directives(const ServerConfig& sconfig)
 
 	this->_s_directives = sconfig.get_directives();
 	this->_directives = this->_s_directives;
-	if (this->_uri.empty())
-		return ;
 	second_slash_index = std::string(this->_uri.begin() + 1, this->_uri.end()).find_first_of('/');
 	if (second_slash_index != std::string::npos)
 		location = this->_uri.substr(0, second_slash_index + 1);
@@ -319,8 +300,6 @@ void	Response::set_directives(const ServerConfig& sconfig)
 	if (second_slash_index != std::string::npos)
 		this->_rest_of_the_uri = this->_uri.substr(second_slash_index + 1, this->_uri.length());
 	this->_location_uri = location;
-	// std::cout << "location: " << location << std::endl;
-	// std::cout << "resst_uri: " << this->_rest_of_the_uri << std::endl;
 }
 
 void	Response::set_path(void)
@@ -352,12 +331,12 @@ void	Response::set_path(void)
 		}
 	}
 	this->_path = path;
-	
+
 	if (this->_method == "PUT")
 		return ;
-	
+
 	std::ifstream	infile;
-	
+
 	infile.open(this->_path);
 	// std::cout << "this->_path: " << this->_path << std::endl;
 	if (!infile.good())
@@ -371,7 +350,7 @@ void	Response::set_path(void)
 	else if (opendir(this->_path.c_str()) != NULL)
 	{
 		if (this->_directives.count("index") == 0)
-			throw ServerErrorException(__LINE__, __FILE__, E403, this->_path + " read_path is a directory");	
+			throw ServerErrorException(__LINE__, __FILE__, E403, this->_path + " read_path is a directory");
 		infile.close();
 		infile.open(this->_path.append("/").append(this->_directives["index"][0]));
 		if (!infile.good())
@@ -387,9 +366,9 @@ bool	Response::is_cgi(void)
 		return (false);
 	if (this->_directives.count("cgi") == 0)
 		return (false);
-	
+
 	utils::StrVec	cgis;
-	
+
 	cgis = this->_directives["cgi"];
 	for (size_t i = 0; i < cgis.size(); i++)
 		if (this->_path.substr(this->_path.length() - 3, this->_path.length()) == cgis[i++])
@@ -480,11 +459,11 @@ void	Response::read_path(void)
 	// if (opendir(this->_path.c_str()) != NULL)
 	// {
 	// 	if (this->_directives.count("index") == 0)
-	// 		throw ServerErrorException(__LINE__, __FILE__, E403, this->_path + " read_path is a directory");	
+	// 		throw ServerErrorException(__LINE__, __FILE__, E403, this->_path + " read_path is a directory");
 	// 	infile.close();
 	// 	infile.open(this->_path.append("/").append(this->_directives["index"][0]));
 	// 	if (!infile.good())
-	// 		throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " read_path failed");	
+	// 		throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " read_path failed");
 	// }
 	while (infile.get(c))
 	{
