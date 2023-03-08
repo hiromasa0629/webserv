@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:27:04 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 13:42:28 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 23:37:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,7 @@ class ResponseHeader {
 		enum StatusCode		get_status(void) const;
 
 		void				construct(void);
+		void				construct(const std::string& header);
 
 	private:
 		std::map<int, std::string>	_codes;

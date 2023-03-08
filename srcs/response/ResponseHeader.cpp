@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 20:04:59 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 23:38:07 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,11 @@ void	ResponseHeader::construct(void)
 		ss << "Transfer-Encoding: chunked" << "\r\n";
 	ss << "\r\n";
 	this->_response_header = ss.str();
+}
+
+void	ResponseHeader::construct(const std::string& header)
+{
+	this->_response_header = header;
 }
 
 std::string	ResponseHeader::get_response_header(void) const

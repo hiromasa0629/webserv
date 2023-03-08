@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:19:56 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 13:51:27 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 01:13:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,18 +31,22 @@ class TmpResponse {
 
 
 	private:
-		void		handle_redirection(void);
-		std::string	read_file(void);
-	
+		void		handle_redirection(const std::string& uri);
+		void		handle_put(const std::string& path);
+		void		handle_cgi(const std::string& cgi_msg);
+		void		handle_autoindex(const std::string& body);
+		void		handle_delete(const std::string& path);
+		void		handle_normal(const std::string& path);
+		std::string	read_file(const std::string& path);
+
 		TmpRequest			_req;
-		char**				_envp;
 		bool				_is_complete_resposne;
-		
+
 		ResponseConfig		_response_config;
 		ResponseHeader		_header;
-		
+
 		std::string			_body;
-		
+
 		Logger				_logger;
 };
 
