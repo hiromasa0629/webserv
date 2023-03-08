@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 19:00:29 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 20:02:13 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,14 +90,52 @@ static size_t	get_next_slash_index(const std::string& uri)
 	return (0);
 }
 
-void	ResponseConfig::configure(void)
+static	ResponseConfig::SegmentVec	split_uri(std::string uri)
 {
-	std::string	uri;
+	ResponseConfig::SegmentVec	sv;
 	
-	uri = this->_req.get_request_field(METHOD);
 	while (uri.size() > 0)
 	{
-		uri = uri.substr(uri.)
+		std::string	tmp		= std::string(uri.begin() + 1, uri.end());
+		size_t		index	= tmp.find_first_of('/');
+		
+		if (index == std::string::npos)
+		{
+			sv.push_back(ResponseConfigUriSegment(uri.substr(0, index), true));
+			break ;
+		}
+		else
+			sv.push_back(ResponseConfigUriSegment(uri.substr(0, index + 1), false));
+		uri = uri.substr(index + 1);
+	}
+	return (sv);
+}
+
+static void	overwrite_directives(utils::StrToStrVecMap& directives, const utils::StrToStrVecMap& l_directives)
+{
+	
+}
+
+void	ResponseConfig::configure(const ServerConfig& sconfig)
+{
+	SegmentVec						segmented_uri;
+	ResponseConfigHelper			helper;
+	ServerConfig::StrToLConfigMap	l_config;
+	
+	this->_directives = sconfig.get_directives();
+	this->_path = this->_directives["root"][0];
+	l_config = sconfig.get_lconfig();
+	segmented_uri = split_uri(this->_req.get_request_field(METHOD));
+	for (size_t i = 0; i < segmented_uri.size(); i++)
+	{
+		if (i == 0 && l_config.count(segmented_uri[i].s) > 0)
+		{
+			utils::StrToStrVecMap	l_directives = l_config[segmented_uri[i].s].get_directives();
+			
+			if (l_directives)
+			overwrite_directives(this->_directives, l_directives);
+
+		}
 	}
 }
 
@@ -270,3 +308,27 @@ std::pair<std::string, std::string>	ResponseConfig::is_cgi(const std::string& pa
 	}
 	return (std::make_pair("", ""));
 }
+
+ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : s(s), is_last(is_last) {}
+
+// bool	ResponseConfigUriSegment::is_same_extension(const std::string& ext) const
+// {
+// 	if (s.substr(s.length() - ext.length()) == ext)
+// 		return (true);
+// 	return (false);
+// }
+
+std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVec& cgis) const
+{
+	for (size_t i = 0; i < cgis.size(); i++)
+	{
+		std::string	ext = cgis[i++];
+		std::string cmd = cgis[i];
+		
+		if (s.substr(s.length() - ext.length()) == ext)
+			return (std::make_pair(true, cmd));
+	}
+	return (std::make_pair(false, std::string()));
+}
+
+ResponseConfigHelper::ResponseConfigHelper(void) : is_cgi(false), is_redirect(false), is_autoindex(false) {}

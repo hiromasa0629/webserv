@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:52:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 18:48:45 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 20:03:25 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,8 +21,27 @@
 # include "ResponseAutoindex.hpp"
 # include "ResponseCgi.hpp"
 
+struct ResponseConfigUriSegment {
+	ResponseConfigUriSegment(const std::string& s, bool is_last);
+	// bool							is_same_extension(const std::string& ext) const;
+	std::pair<bool, std::string>	is_cgi(const utils::StrVec& cgis) const;
+	
+	std::string	s;
+	bool		is_last;
+	
+};
+
+struct ResponseConfigHelper {
+	ResponseConfigHelper(void);
+	
+	bool	is_redirect;
+	bool	is_autoindex;
+};
+
 class ResponseConfig {
 	public:
+		typedef	std::vector<ResponseConfigUriSegment>	SegmentVec;
+	
 		ResponseConfig(void);
 		~ResponseConfig(void);
 		ResponseConfig(const TmpRequest& req, const ServerConfig& sconfig, char** envp);
@@ -34,7 +53,7 @@ class ResponseConfig {
 		const std::pair<bool, ResponseCgi>&			get_cgi(void) const;
 
 	private:
-		void	configure(void);
+		void	configure(const ServerConfig& sconfig);
 		void	set_directives(const ServerConfig& sconfig);
 		
 		/**
