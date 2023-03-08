@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:52:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 17:23:36 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 18:48:45 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ class ResponseConfig {
 	public:
 		ResponseConfig(void);
 		~ResponseConfig(void);
-		ResponseConfig(const TmpRequest& req, const ServerConfig& sconfig);
+		ResponseConfig(const TmpRequest& req, const ServerConfig& sconfig, char** envp);
 		
 		utils::StrVec								get_directives(const std::string& key) const;
 		std::string									get_content_type(void) const;
@@ -34,6 +34,7 @@ class ResponseConfig {
 		const std::pair<bool, ResponseCgi>&			get_cgi(void) const;
 
 	private:
+		void	configure(void);
 		void	set_directives(const ServerConfig& sconfig);
 		
 		/**
@@ -61,7 +62,7 @@ class ResponseConfig {
 		utils::StrToStrVecMap	_l_directives;
 		utils::StrToStrVecMap	_directives;
 		std::string				_rest_of_the_uri;
-		std::string				_location_uri;ptmpre
+		std::string				_location_uri;
 		
 		std::pair<bool, ResponseAutoindex>	_autoindex;
 		std::pair<bool, ResponseCgi>		_cgi;

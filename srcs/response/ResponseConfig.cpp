@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 17:30:14 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 19:00:29 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,6 +78,30 @@ void	ResponseConfig::set_directives(const ServerConfig& sconfig)
 	for (; it2 != this->_l_directives.end(); it2++)
 		this->_directives[it2->first] = it2->second;
 }
+
+static size_t	get_next_slash_index(const std::string& uri)
+{
+	std::string	tmp;
+	size_t		index;
+	
+	tmp = std::string(uri.begin() + 1, uri.end());
+	if ((index = tmp.find_first_of('/')) != std::string::npos)
+		return (index + 1);
+	return (0);
+}
+
+void	ResponseConfig::configure(void)
+{
+	std::string	uri;
+	
+	uri = this->_req.get_request_field(METHOD);
+	while (uri.size() > 0)
+	{
+		uri = uri.substr(uri.)
+	}
+}
+
+
 
 void	ResponseConfig::set_path(void)
 {
