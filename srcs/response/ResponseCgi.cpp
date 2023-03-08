@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 21:07:33 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 16:09:55 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,11 @@
 
 ResponseCgi::ResponseCgi(void) {}
 
-ResponseCgi::~ResponseCgi(void) {}
+ResponseCgi::~ResponseCgi(void)
+{
+	for (size_t i = 0; i < this->_envp.size(); i++)
+		delete[] this->_envp[i];
+}
 
 ResponseCgi::ResponseCgi(const std::string& path, const std::string& body, const std::string& cmd, char** envp) 
 	: _path(path), _body(body), _cmd(cmd)
@@ -25,6 +29,10 @@ ResponseCgi::ResponseCgi(const std::string& path, const std::string& body, const
 		this->_envp.push_back(s);
 	}
 	this->_envp.push_back(NULL);
+	
+	this->insert_into_envp("REQUEST_METHOD", "POST");
+	this->insert_into_envp("SERVER_PROTOCOL", "HTTP/1.1");
+	this->insert_into_envp("PATH_INFO", )
 }
 
 void	ResponseCgi::execute(void)
@@ -52,11 +60,23 @@ void	ResponseCgi::execute(void)
 		std::vector<char*>			argv;
 		for (size_t i = 0; i < tmp.size(); i++)
 			argv.push_back(const_cast<char*>(tmp[i].c_str()));
+
 		close(pipe_to_child[1]);
 		close(pipe_to_parent[0]);
 		dup2(pipe_to_child[0], STDIN_FILENO);
 		dup2(pipe_to_parent[1], STDOUT_FILENO);
 		
+		execve(this->_cmd.c_str(), argv.data(), this->_envp.data());
 		
 	}
+}
+
+void	ResponseCgi::insert_into_envp(const std::string& key, const std::string& value)
+{
+	std::stringstream	ss;
+	std::string			s;
+	
+	ss << key << "=" << value;
+	ss >> s;
+	this->_envp.insert(this->_envp.end() - 1, const_cast<char*>(s.c_str()));
 }

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/26 21:12:56 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 13:53:39 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 18:36:46 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,12 +15,14 @@
 # include <iostream>
 # include <sstream>
 # include <dirent.h>
+# include "ServerErrorException.hpp"
 
 class ResponseAutoindex {
 	public:
 		ResponseAutoindex(void);
 		~ResponseAutoindex(void);
-		ResponseAutoindex(const std::string& path, const std::string& rest_of_the_uri, const std::string& host, const std::string& port, const std::string& location_uri);
+		ResponseAutoindex(const std::string& path, const std::string& rest_of_the_uri, const std::string& host, const std::string& port);
+		// ResponseAutoindex(const std::string& path, const std::string& rest_of_the_uri, const std::string& host, const std::string& port, const std::string& location_uri);
 		
 		std::string	get_body(void) const;
 
@@ -30,10 +32,10 @@ class ResponseAutoindex {
 	
 		std::string		_body;
 		std::string		_path;
-		std::string		_rest_of_the_uri;
+		// std::string		_rest_of_the_uri;
 		std::string		_host;
 		std::string		_port;
-		std::string		_location_uri;
+		// std::string		_location_uri;
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 18:48:11 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 17:28:10 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,7 +123,13 @@ void	TmpRequest::extract_header_info(void)
 	if (!this->check_request_line(split))
 		throw ServerErrorException(__LINE__, __FILE__, E400, "Request line error");
 	this->_header_info.insert(std::make_pair(METHOD, split[0]));
-	this->_header_info.insert(std::make_pair(URI, split[1]));
+	if (split[1].find_first_of('?') != std::string::npos)
+	{
+		this->_header_info.insert(std::make_pair(URI, split[1].substr(0, split[1].find_first_of('?'))));
+		this->_header_info.insert(std::make_pair(QUERY, split[1].substr(split[1].find_first_of('?') + 1)));
+	}
+	else
+		this->_header_info.insert(std::make_pair(URI, split[1]));
 	this->_header_info.insert(std::make_pair(PROTOCOL, split[2]));
 	for (size_t i = 1; i < header_lines.size(); i++)
 	{

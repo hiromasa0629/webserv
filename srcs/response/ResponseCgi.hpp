@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:19:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 20:58:40 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 16:08:45 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@ class ResponseCgi {
 		void	execute(void);
 		
 	private:
+		void	insert_into_envp(const std::string& key, const std::string& value);
+	
 		std::string			_path;
 		std::vector<char*>	_envp;
 		std::string			_body;

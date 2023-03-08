@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 16:45:25 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 17:26:08 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,7 @@
 enum RequestFields {
 	METHOD,
 	URI,
+	QUERY,
 	SERVER_NAME,
 	PORT,
 	PROTOCOL,
