@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 20:02:13 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 21:17:50 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,11 +111,6 @@ static	ResponseConfig::SegmentVec	split_uri(std::string uri)
 	return (sv);
 }
 
-static void	overwrite_directives(utils::StrToStrVecMap& directives, const utils::StrToStrVecMap& l_directives)
-{
-	
-}
-
 void	ResponseConfig::configure(const ServerConfig& sconfig)
 {
 	SegmentVec						segmented_uri;
@@ -131,10 +126,70 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 		if (i == 0 && l_config.count(segmented_uri[i].s) > 0)
 		{
 			utils::StrToStrVecMap	l_directives = l_config[segmented_uri[i].s].get_directives();
+			helper = ResponseConfigHelper(l_directives, segmented_uri[i].s, this->_directives);
 			
-			if (l_directives)
-			overwrite_directives(this->_directives, l_directives);
+			if (l_directives.count("root"))
+				this->_path = this->_directives["root"][0];
+			else
+				this->_path.append(segmented_uri[i].s);
+		}
+		else
+			this->_path.append(segmented_uri[i].s);
 
+		if (helper.is_redirect)
+			break ;
+		
+		std::pair<bool, std::string>	cgi_pair;
+		
+		if (this->_directives.count("cgi") && (cgi_pair = segmented_uri[i].is_cgi(this->_directives["cgi"])).first)
+		{
+			std::string	path_info;
+			
+			for (size_t j = i + 1; j < segmented_uri.size(); j++)
+				path_info.append(segmented_uri[j].s);
+			this->_cgi.first = true;
+			
+			// TODO add path_info and query_string
+			this->_cgi.second = ResponseCgi(this->_path, this->_req.get_body(), cgi_pair.second, this->_envp);
+			break ;
+		}
+		
+		if (segmented_uri[i].is_last && this->_req.get_request_field(METHOD) != "PUT")
+		{
+			if (opendir(this->_path.c_str()) != NULL && helper.is_autoindex)
+			{
+				this->_autoindex.first = true;
+				this->_autoindex.second = ResponseAutoindex(this->_path, helper.location_uri, this->_req.get_request_field(SERVER_NAME), this->_req.get_request_field(PORT));
+			}
+			else if (opendir(this->_path.c_str()) != NULL)
+			{
+				if (this->_directives.count("index") == 0)
+					throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
+				
+				this->_path.append("/").append(this->_directives["index"][0]);
+				
+				std::ifstream	infile(this->_path.c_str());
+				
+				if (!infile.good())
+					throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
+			}
+			else
+			{
+				std::ifstream	infile;
+				
+				infile.open(this->_path);
+				if (!infile.good())
+				{
+					infile.open(this->_path + ".html");
+					if (!infile.good())
+						throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
+					this->_path.append(".html");
+				}
+			}
+		}
+		else if (segmented_uri[i].is_last && this->_req.get_request_field(METHOD) == "PUT")
+		{
+			
 		}
 	}
 }

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:52:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 20:03:25 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/08 21:15:24 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,9 +33,18 @@ struct ResponseConfigUriSegment {
 
 struct ResponseConfigHelper {
 	ResponseConfigHelper(void);
+	/**
+	 * @brief Construct a new Response Config Helper object. Check if its redirect or autoindex, also 
+	 * overwrites the ResponseConfig directives;
+	 * 
+	 * @param l_directive location directives
+	 * @param directives Responseconfig directive, to be overwrtitten
+	 */
+	ResponseConfigHelper(const utils::StrToStrVecMap& l_directive, const std::string& location, utils::StrToStrVecMap& directives);
 	
-	bool	is_redirect;
-	bool	is_autoindex;
+	bool		is_redirect;
+	bool		is_autoindex;
+	std::string	location_uri;
 };
 
 class ResponseConfig {
