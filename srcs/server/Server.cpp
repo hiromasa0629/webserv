@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 21:02:21 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 21:42:17 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,6 +29,8 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 {
 	Config::StrToSConfigMap::const_iterator	it;
 	Socket									tmp;
+
+	signal(SIGPIPE, SIG_IGN);
 
 	this->_timeval.tv_sec = TIMEOUT_SEC;
 	this->_timeval.tv_usec = TIMEOUT_USEC;
@@ -144,24 +146,12 @@ std::string			Server::read_request(int fd)
 		for (ssize_t i = 0; i < ret; i++)
 			res.push_back(buf[i]);
 		std::memset(buf, 0, BUFFER_SIZE);
-#if DEBUG
-		// std::cout << "ret: " << ret << ", size: " << res.size() << std::endl;
-#endif
 		if (ret <= BUFFER_SIZE)
 			break ;
 		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
 	if (ret == -1)
 		throw std::runtime_error("Recv()");
-#if DEBUG
-	// for (size_t i = 0; i < res.size(); i++)
-	// 	std::cout << res[i];
-	// std::cout << "ret = " << ret << "res.size = " << res.size() << std::endl;
-	// std::cout << res << std::endl;
-	// std::cout << std::endl;
-	// std::cout << "last 4: " << (int)res[res.size() - 4] << " " << (int)res[res.size() - 3] << " " << (int)res[res.size() - 2] << " " << (int)res[res.size() - 1] << std::endl;
-	// std::cout << "last 1: " << (int)res[res.size()] << std::endl;
-#endif
 	return (res);
 }
 
@@ -259,7 +249,10 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 
 void	Server::handle_pollin_select(int fd)
 {
-	this->_logger.info("POLLIN (select) fd: " + std::to_string(fd));
+#if DEBUG
+	if (this->_fd_requests.count(fd) == 0)
+		this->_logger.info("POLLIN (select) fd: " + std::to_string(fd));
+#endif
 
 	try
 	{
@@ -274,11 +267,11 @@ void	Server::handle_pollin_select(int fd)
 		if (!this->_fd_requests[fd].get_is_complete())
 		{
 #if DEBUG
-			// std::cout << "NOT COMPLETE" << std::endl;
+			std::cout << "NOT COMPLETE. fd: " << fd << std::endl;
 #endif
 			return ;
 		}
-		// this->_fd_requests[fd].print_request_header();
+		this->_fd_requests[fd].print_request_header();
 	}
 	catch (const ServerErrorException& e)
 	{
@@ -305,8 +298,12 @@ void	Server::handle_pollin_select(int fd)
 
 void	Server::handle_pollout_select(int fd)
 {
-	this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
-	Response		response;
+#if DEBUG
+	if (this->_fd_response.count(fd) == 0)
+		this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
+#endif
+
+	TmpResponse		response;
 	std::string		response_msg;
 	std::string		body;
 	std::string		header;
@@ -316,52 +313,62 @@ void	Server::handle_pollout_select(int fd)
 	{
 		if (this->_fd_response.count(fd) == 0)
 		{
-			this->_fd_response.insert(std::make_pair(fd, Response(this->_fd_requests[fd], this->_fd_sconfig[fd], this->_envp)));
-			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
+			this->_fd_response.insert(std::make_pair(fd, TmpResponse(this->_fd_requests[fd], this->_fd_sconfig[fd], this->_envp)));
+			res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
 		}
 		else
 			res.append(this->_fd_response[fd].get_body());
-		send(fd, res.c_str(), res.size(), 0);
+		size_t	b_sent;
+		
+		b_sent = send(fd, res.c_str(), res.size(), 0);
+		if (b_sent != res.size())
+			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "send error"));
 		if (this->_fd_response[fd].get_is_complete_response())
 			if (close(fd) != 0)
-				throw std::runtime_error(std::to_string(__LINE__) + " close error");
+				throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
 	}
 	catch (const ServerErrorException& e)
 	{
 		this->_logger.warn(e.what());
-		if (this->_fd_response.count(fd) == 0)
+		this->_fd_response[fd] = TmpResponse(e.get_status(), this->_fd_sconfig[fd]);
+		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
+		
+		size_t	b_sent;
+		
+		b_sent = send(fd, res.c_str(), res.size(), 0);
+		if (b_sent != res.size())
 		{
-			this->_fd_response.insert(std::make_pair(fd, Response(e.get_status(), this->_fd_sconfig[fd])));
-			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
+			FD_CLR(fd, &this->_fd_sets.second);
+			this->_fd_requests.erase(fd);
+			this->_fd_response.erase(fd);
+			close(fd);
 		}
-		else
-			res.append(this->_fd_response[fd].get_body());
-		send(fd, res.c_str(), res.size(), 0);
-		if (this->_fd_response[fd].get_is_complete_response())
-			if (close(fd) != 0)
-				throw std::runtime_error(std::to_string(__LINE__) + " close error");
+		if (close(fd) != 0)
+			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
 	}
 	catch (const std::exception& e)
 	{
 		this->_logger.warn(e.what());
-		if (this->_fd_response.count(fd) == 0)
+		this->_fd_response[fd] = TmpResponse(E500, this->_fd_sconfig[fd]);
+		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
+		
+		size_t	b_sent;
+		
+		b_sent = send(fd, res.c_str(), res.size(), 0);
+		if (b_sent != res.size())
 		{
-			this->_fd_response.insert(std::make_pair(fd, Response(this->_fd_requests[fd], this->_fd_sconfig[fd])));
-			res.append(this->_fd_response[fd].get_response_header()).append(this->_fd_response[fd].get_body());
+			FD_CLR(fd, &this->_fd_sets.second);
+			this->_fd_requests.erase(fd);
+			this->_fd_response.erase(fd);
+			close(fd);
 		}
-		else
-			res.append(this->_fd_response[fd].get_body());
-		send(fd, res.c_str(), res.size(), 0);
-		if (this->_fd_response[fd].get_is_complete_response())
-			if (close(fd) != 0)
-				throw std::runtime_error(std::to_string(__LINE__) + " close error");
+		if (close(fd) != 0)
+			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
 	}
 
-	// send(fd, _example_res, std::strlen(_example_res), 0);
-	// if (close(fd) != 0)
-	// 	throw std::runtime_error("Pollout select close");
 	if (this->_fd_response[fd].get_is_complete_response())
 	{
+		this->_logger.debug("Connection closed. fd: " + std::to_string(fd));
 		FD_CLR(fd, &this->_fd_sets.second);
 		this->_fd_requests.erase(fd);
 		this->_fd_response.erase(fd);
@@ -436,7 +443,3 @@ std::vector<Socket>::iterator	Server::get_socket_from_fd(int fd)
 			return (it);
 	return (this->_sockets.end());
 }
-
-/***********************************
- *  Non member function
-***********************************/

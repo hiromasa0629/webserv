@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/26 21:14:01 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 22:59:03 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 14:50:54 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,7 +44,7 @@ void	ResponseAutoindex::construct_href(std::stringstream& ss, const char* dirnam
 	if (s == ".")
 		ss << this->_uri;
 	else if (s == "..")
-		ss << this->_uri.substr(0, this->_path.find_last_of('/'));
+		ss << this->_uri.substr(0, this->_uri.find_last_of('/'));
 	else
 		ss << this->_uri << "/" << dirname;
 	ss << "\">" << dirname;

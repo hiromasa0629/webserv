@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 17:26:08 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 14:45:23 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,6 +82,7 @@ void									print_msg_with_crlf(const std::string& s);
 std::string								itoa(size_t i);
 std::string								to_hex(size_t i);
 size_t									to_int(std::string hex);
+std::string								construct_errro_msg(int err, int line, const std::string& file, const std::string& msg);
 
 }
 

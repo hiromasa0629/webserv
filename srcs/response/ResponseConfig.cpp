@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 01:02:18 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 21:32:29 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,51 +103,67 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 	bool							is_redirect		= false;
 	bool							is_autoindex	= false;
 	ServerConfig::StrToLConfigMap	l_config;
+	
 
 	this->_directives = sconfig.get_directives();
-	this->_path = this->_directives["root"][0];
 	l_config = sconfig.get_lconfig();
+	this->_path = this->_directives["root"][0];
 	segmented_uri = split_uri(this->_req.get_request_field(URI));
 	for (size_t i = 0; i < segmented_uri.size(); i++)
 	{
 		if (i == 0 && l_config.count(segmented_uri[i].s) > 0)
 		{
-			utils::StrToStrVecMap	l_directives = l_config[segmented_uri[i].s].get_directives();
+			utils::StrToStrVecMap			l_directives = l_config[segmented_uri[i].s].get_directives();
 			overwrite_directives(l_config[segmented_uri[i].s].get_directives(), this->_directives, is_redirect, is_autoindex);
 
 			if (l_directives.count("root"))
 				this->_path = this->_directives["root"][0];
 			else
 				this->_path.append(segmented_uri[i].s);
+		}
+		else
+			this->_path.append(segmented_uri[i].s);
+		
+		this->handle_error();
 
+		if (i == 0)
+		{
 			std::string	cgi_path = this->_path;
-			for (size_t j = 1; j < segmented_uri.size(); j++)
+			int			tmp_j = 0;
+			if (l_config.count(segmented_uri[i].s) > 0)
+				tmp_j = 1;
+			// std::cout << "segmented_uri.size(): " << segmented_uri.size() << std::endl;
+			// std::cout << "tmp_j: " << tmp_j << std::endl;
+			for (size_t j = tmp_j; j < segmented_uri.size(); j++)
 			{
-				cgi_path.append(segmented_uri[j].s);
+				if (j != 0)
+					cgi_path.append(segmented_uri[j].s);
 
 				std::pair<bool, std::string>	cgi_pair;
 
+				// std::cout << "cgi_path: " << cgi_path << std::endl;
 				if (this->_directives.count("cgi") && (cgi_pair = segmented_uri[j].is_cgi(this->_directives["cgi"])).first)
 				{
 					std::string	path_info;
 
-					for (size_t j = i + 1; j < segmented_uri.size(); j++)
-						path_info.append(segmented_uri[j].s);
+					for (size_t k = j + 1; k < segmented_uri.size(); k++)
+						path_info.append(segmented_uri[k].s);
 					this->_cgi.first = true;
-
-					// TODO add path_info and query_string and request_method
+					// std::cout << "cgi_path: " << cgi_path << std::endl;
 					this->_cgi.second = ResponseCgi(cgi_path, this->_req.get_body(), cgi_pair.second, this->_envp);
 					this->_cgi.second.set_envp("REQUEST_METHOD", this->_req.get_request_field(METHOD));
 					this->_cgi.second.set_envp("SERVER_PROTOCOL", this->_req.get_request_field(PROTOCOL));
 					this->_cgi.second.set_envp("PATH_INFO", path_info);
 					this->_cgi.second.set_envp("QUERY_STRING", this->_req.get_request_field(QUERY));
+					this->_cgi.second.set_envp("CONTENT_LENGTH", utils::itoa(this->_req.get_body().size()));
+					this->_cgi.second.set_envp("SERVER_NAME", this->_req.get_request_field(SERVER_NAME));
+					this->_cgi.second.set_envp("SERVER_PORT", this->_req.get_request_field(PORT));
 					this->_cgi.second.execute();
-					break ;
+					
+					return ;
 				}
 			}
 		}
-		else
-			this->_path.append(segmented_uri[i].s);
 
 		if (is_redirect)
 		{
@@ -156,6 +172,11 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 
 			this->_redirection.first = true;
 			return_uri = this->_directives["return"][0];
+			if (return_uri.substr(0, 7) == "http://" || return_uri.substr(0, 8) == "https://")
+			{
+				this->_redirection.second = return_uri;
+				return ;
+			}
 			if (return_uri.front() != '/')
 				return_uri.insert(return_uri.begin(), '/');
 			this->_redirection.second.append(return_uri);
@@ -163,7 +184,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 				rest_of_the_uri.append(segmented_uri[j].s);
 			this->_redirection.second.append(rest_of_the_uri);
 
-			break ;
+			return ;
 		}
 
 		if (this->_req.get_request_field(METHOD) == "PUT")
@@ -185,7 +206,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 			else
 				this->_put.second.append(this->_req.get_request_field(URI));
 
-			break ;
+			return ;
 		}
 
 		if (segmented_uri[i].is_last)
@@ -248,7 +269,7 @@ void	ResponseConfig::handle_error(void) const
 	}
 	if (this->_directives.count("client_max_body_size") > 0)
 	{
-		int	client_max_body_size;
+		size_t	client_max_body_size;
 
 		client_max_body_size = std::stoi(this->_directives.at("client_max_body_size")[0]);
 		if (client_max_body_size < this->_req.get_body().size())
@@ -261,7 +282,11 @@ bool	ResponseConfig::is_localhost(const std::string& req_server_name) const
 	return (req_server_name == "localhost" || req_server_name == "127.0.0.1");
 }
 
-ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : s(s), is_last(is_last) {}
+ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : s(s), is_last(is_last) 
+{
+	if (this->s == "/")
+		this->s = "";
+}
 
 std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVec& cgis) const
 {
@@ -269,7 +294,9 @@ std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVe
 	{
 		std::string	ext = cgis[i++];
 		std::string cmd = cgis[i];
-
+		
+		if (s.length() < ext.length())
+			continue ;
 		if (s.substr(s.length() - ext.length()) == ext)
 			return (std::make_pair(true, cmd));
 	}

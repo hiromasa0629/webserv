@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 16:45:37 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 14:47:03 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -115,6 +115,16 @@ size_t	to_int(std::string hex)
 	ss << std::hex << hex;
 	ss >> i;
 	return (i);
+}
+
+std::string	construct_errro_msg(int err, int line, const std::string& file, const std::string& msg)
+{
+	std::stringstream	ss;
+	
+	ss << err << " " << std::strerror(err);
+	ss << " (" << file << ":" << line << ") ";
+	ss << msg;
+	return (ss.str());
 }
 
 }

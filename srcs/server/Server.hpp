@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/07 20:31:08 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 14:41:08 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,8 @@
 # include "Logger.hpp"
 # include <sys/select.h>
 # include "Request.hpp"
-# include "Response.hpp"
+# include <csignal>
+# include "TmpResponse.hpp"
 # include "TmpRequest.hpp"
 # include "ServerErrorException.hpp"
 
@@ -38,6 +39,7 @@ class Server {
 		// Server	&operator=(const Server &rhs);
 
 		void	run(void);
+		
 
 	private:
 		Server(void);
@@ -126,10 +128,9 @@ class Server {
 		std::pair<fd_set, fd_set>	_fd_sets; // < read, write >
 		std::map<int, ServerConfig>	_fd_sconfig;
 		std::map<int, TmpRequest>	_fd_requests;
-		std::map<int, Response>		_fd_response;
+		std::map<int, TmpResponse>	_fd_response;
 		timeval_t					_timeval;
 		Logger						_logger;
-		// bool						_is_server_error;
 		
 		static const char*			_example_res;
 		

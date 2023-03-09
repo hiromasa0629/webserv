@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 17:28:10 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 13:15:16 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,7 +56,6 @@ void	TmpRequest::append(const std::string& req)
 			return ;
 		this->extract_header_info();
 		this->_is_complete_header = true;
-		this->_logger.debug("in is_complete_header");
 	}
 	if (this->_header_info[METHOD] == "POST" || this->_header_info[METHOD] == "PUT")
 		this->handle_post(req);
