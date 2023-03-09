@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/15 21:24:22 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/02 13:50:42 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/02 18:15:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -74,6 +74,8 @@ void	Request::print_request_header(void) const
 
 void	Request::append(const std::string& req)
 {
+	// if (req.find("\r\n\r\n") == std::string::npos)
+	// 	return;
 	for (size_t i = 0; i < req.size(); i++)
 		this->_req.push_back(req[i]);
 	// std::cout << "req.size(): " << this->_req.size() << std::endl;

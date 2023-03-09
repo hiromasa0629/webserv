@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/26 21:14:01 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/27 13:58:36 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/09 14:50:54 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,26 +16,18 @@ ResponseAutoindex::ResponseAutoindex(void) {}
 
 ResponseAutoindex::~ResponseAutoindex(void) {}
 
-ResponseAutoindex::ResponseAutoindex(const std::string& path, const std::string& rest_of_the_uri, const std::string& host, const std::string& port, const std::string& location_uri)
+ResponseAutoindex::ResponseAutoindex(const std::string& path, const std::string& uri,  const std::string& host, const std::string& port)
+	: _path(path), _host(host), _port(port), _uri(uri)
 {
-	this->_path				= path;
-	this->_rest_of_the_uri	= rest_of_the_uri;
-	this->_host 			= host;
-	this->_port 			= port;
-	this->_location_uri 	= location_uri;
-	
-	this->_path.append(rest_of_the_uri);
-	this->_location_uri.append(rest_of_the_uri);
-	
 	DIR*				dir;
 	struct dirent*		dir_ent;
 	std::stringstream	ss;
-	
+
 	if ((dir = opendir(this->_path.c_str())) == NULL)
-		throw std::runtime_error(this->_path + " Opendir failed");
+		throw ServerErrorException(__LINE__, __FILE__, E500, this->_path + " opendir failed");
 	while ((dir_ent = readdir(dir)))
 	{
-		if (this->_rest_of_the_uri.empty() && (!std::strcmp(dir_ent->d_name, ".") || !std::strcmp(dir_ent->d_name, ".."))) // if its root ignore . and ..
+		if (std::count(uri.begin(), uri.end(), '/') == 1 && (!std::strcmp(dir_ent->d_name, ".") || !std::strcmp(dir_ent->d_name, "..")))
 			continue ;
 		this->construct_href(ss, dir_ent->d_name);
 	}
@@ -46,15 +38,15 @@ ResponseAutoindex::ResponseAutoindex(const std::string& path, const std::string&
 void	ResponseAutoindex::construct_href(std::stringstream& ss, const char* dirname) const
 {
 	std::string	s(dirname);
-	
+
 	ss << "<p>";
 	ss << "<a href=\"http://" << this->_host << ":" << this->_port;
 	if (s == ".")
-		ss << this->_location_uri;
+		ss << this->_uri;
 	else if (s == "..")
-		ss << this->_location_uri.substr(0, this->_location_uri.find_last_of('/'));
+		ss << this->_uri.substr(0, this->_uri.find_last_of('/'));
 	else
-		ss << this->_location_uri << "/" << dirname;
+		ss << this->_uri << "/" << dirname;
 	ss << "\">" << dirname;
 	ss << "</a>";
 	ss << "</p>";

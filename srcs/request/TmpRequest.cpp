@@ -1,0 +1,292 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   TmpRequest.cpp                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
+/*   Updated: 2023/03/09 13:15:16 by hyap             ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "TmpRequest.hpp"
+
+const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE", "HEAD", "PUT"};
+
+const char*	TmpRequest::_fields_string[] = {"method", "uri", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary"};
+
+TmpRequest::TmpRequest(void) : _is_complete(false), _is_complete_header(false), _req(""), _status_code(S200), _logger() {}
+
+TmpRequest::~TmpRequest(void) {}
+
+TmpRequest::TmpRequest(enum StatusCode status) : _status_code(status) {}
+
+std::string	TmpRequest::get_request_field(enum RequestFields name) const
+{
+	if (this->_header_info.count(name) == 0)
+		return ("");
+	return (this->_header_info.at(name));
+}
+
+enum StatusCode	TmpRequest::get_status_code(void) const
+{
+	return (this->_status_code);
+}
+
+std::string	TmpRequest::get_body(void) const
+{
+	return (this->_body);
+}
+
+bool	TmpRequest::get_is_complete(void) const
+{
+	return (this->_is_complete);
+}
+
+void	TmpRequest::append(const std::string& req)
+{
+	this->_req.append(req);
+#if DEBUG
+	// utils::print_msg_with_crlf(this->_req);
+#endif
+	if (!_is_complete_header)
+	{
+		if (!this->check_header_complete())
+			return ;
+		this->extract_header_info();
+		this->_is_complete_header = true;
+	}
+	if (this->_header_info[METHOD] == "POST" || this->_header_info[METHOD] == "PUT")
+		this->handle_post(req);
+	else
+		this->handle_get();
+}
+
+void	TmpRequest::print_request_header(void) const
+{
+	std::stringstream	ss;
+	// if (!this->_is_complete)
+	// 	throw std::runtime_error("Request is not completely read yet");
+#if DEBUG
+	std::map<enum RequestFields, std::string>::const_iterator	it;
+	
+	it = this->_header_info.begin();
+	for (; it != this->_header_info.end(); it++)
+		this->_logger.debug(_fields_string[it->first] + std::string(": ") + it->second);
+	if (this->_query.size() > 0)
+	{
+		this->_logger.debug(" --------------------- ");
+		std::map<std::string, std::string>::const_iterator	it2;
+		
+		it2 = this->_query.begin();
+		for (; it2 != this->_query.end(); it2++)
+			this->_logger.debug(it2->first + std::string(": ") + it2->second);
+	}
+	if (!this->_body.empty())
+	{
+		this->_logger.debug(" ----------- Body ----------- ");
+		utils::print_msg_with_crlf(this->_body);
+	}
+#else
+	this->_logger.info(this->_method + " " + this->_uri + " " + this->_host + ":" + this->_port);
+#endif
+}
+
+bool	TmpRequest::check_header_complete(void)
+{
+	if (this->_req.length() < 4)
+		throw ServerErrorException(__LINE__, __FILE__, E400, "Invalid request length");
+	if (this->_req.find("\r\n\r\n") == std::string::npos)
+		return (false);
+	return (true);
+}
+
+void	TmpRequest::extract_header_info(void)
+{
+	size_t			index;
+	std::string		header;
+	utils::StrVec	header_lines;
+	utils::StrVec	split;
+	
+	
+	index = this->_req.find("\r\n\r\n");
+	header = std::string(this->_req.begin(), this->_req.begin() + index);
+	while ((index = header.find("\r\n")) != std::string::npos)
+	{
+		header_lines.push_back(header.substr(0, index));
+		header = header.substr(index + 2);
+	}
+	header_lines.push_back(header);
+	split = utils::ft_split(header_lines[0]);
+	if (!this->check_request_line(split))
+		throw ServerErrorException(__LINE__, __FILE__, E400, "Request line error");
+	this->_header_info.insert(std::make_pair(METHOD, split[0]));
+	if (split[1].find_first_of('?') != std::string::npos)
+	{
+		this->_header_info.insert(std::make_pair(URI, split[1].substr(0, split[1].find_first_of('?'))));
+		this->_header_info.insert(std::make_pair(QUERY, split[1].substr(split[1].find_first_of('?') + 1)));
+	}
+	else
+		this->_header_info.insert(std::make_pair(URI, split[1]));
+	this->_header_info.insert(std::make_pair(PROTOCOL, split[2]));
+	for (size_t i = 1; i < header_lines.size(); i++)
+	{
+		split = utils::ft_split(header_lines[i]);
+		if (split.front() == "Host:")
+		{
+			this->_header_info.insert(std::make_pair(SERVER_NAME, split[1].substr(0, split[1].find_first_of(':'))));
+			this->_header_info.insert(std::make_pair(PORT, split[1].substr(split[1].find_first_of(':') + 1)));
+		}
+		else if (split.front() == "Content-Type:")
+			this->handle_content_type(utils::StrVec(split.begin() + 1, split.end()));
+		else if (split.front() == "Transfer-Encoding:")
+			this->_header_info.insert(std::make_pair(TRANSFER_ENCODING, split.back()));
+		else if (split.front() == "Content-Length:")
+			this->_header_info.insert(std::make_pair(CONTENT_LENGTH, split.back()));
+	}
+	if (this->_header_info.count(SERVER_NAME) == 0)
+		throw ServerErrorException(__LINE__, __FILE__, E400, "Missing request host");
+}	
+
+bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
+{
+	int	i;
+	
+	if (vec.empty())
+		return (false);
+	if (vec.size() != 3)
+		return (false);
+	i = 0;
+	while (i < 5)
+	{
+		if (_methods[i] == vec.front())
+			break ;
+		i++;
+	}
+	if (i == 5)
+		return (false);
+	if (vec.back() != "HTTP/1.1")
+		return (false);
+	if (vec[1].front() != '/')
+		return (false);
+	return (true);
+}
+
+void	TmpRequest::handle_content_type(const utils::StrVec& val)
+{
+	std::string	type;
+	
+	type = val.front();
+	if (type.back() == ';')
+		type.pop_back();
+	this->_header_info.insert(std::make_pair(CONTENT_TYPE, type));
+	if (type == "mutlipart/form-data")
+	{
+		if (val.size() != 2)
+			throw ServerErrorException(__LINE__, __FILE__, E400, "Invalid form-data");
+		else
+			this->_header_info.insert(std::make_pair(BOUNDARY, val.back().substr(val.back().find_first_of('=') + 1)));
+	}
+}
+
+void	TmpRequest::handle_get(void)
+{
+	std::string	uri;
+	
+	uri = this->_header_info[URI];
+	if (uri.find_first_of('?') != std::string::npos)
+	{
+		std::string	query;
+		size_t		index;
+		
+		query = uri.substr(uri.find_first_of('?') + 1);
+		if (query.length() > 0)
+		{
+			std::string	single;
+			size_t		index_two;
+			while (query.length())
+			{
+				index = query.find_first_of('&');
+				single = query.substr(0, index);
+				index_two = single.find_first_of('=');
+				this->_query.insert(std::make_pair(single.substr(0, index_two), single.substr(index_two + 1)));
+				if (index == std::string::npos)
+					query.clear();
+				else
+					query = query.substr(index + 1);
+			}
+			this->_query.erase("");
+		}
+	}
+	this->_is_complete = true;
+}
+
+void	TmpRequest::handle_post(const std::string& req)
+{
+	if (this->_header_info.count(TRANSFER_ENCODING) > 0 && this->_header_info[TRANSFER_ENCODING] == "chunked")
+	{
+		if (this->_chunked_body.empty())
+			this->_chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
+		else
+			this->_chunked_body.append(req);
+		// utils::print_msg_with_crlf(this->_chunked_body);
+		std::cout << "chunked_body.size(): " << this->_chunked_body.size() << std::endl;
+		if (this->_chunked_body.find("0\r\n\r\n") != std::string::npos)
+		{
+			this->_is_complete = true;
+			this->_body = this->tidy_up_chunked_body();
+		}
+	}
+	else if (this->_header_info.count(CONTENT_LENGTH) > 0)
+	{
+		size_t	content_length;
+		
+		content_length = std::stoi(this->_header_info[CONTENT_LENGTH]);
+		if (this->_body.empty())
+		{
+			std::string body;
+			
+			body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
+			if (body.size() > content_length)
+				this->_body.append(body.c_str(), content_length);
+			else
+				this->_body.append(body);
+		}
+		else
+		{
+			size_t	remaining;
+			
+			remaining = content_length - this->_body.size();
+			if (req.size() > remaining)
+				this->_body.append(req, remaining);
+			else
+				this->_body.append(req);
+		}
+		if (this->_body.size() == content_length)
+			this->_is_complete = true;
+	}
+}
+
+std::string	TmpRequest::tidy_up_chunked_body(void)
+{
+	utils::StrVec	lines;
+	std::string		body;
+	size_t			index;
+	int				size;
+	std::string		res;
+	
+	body = this->_chunked_body;
+	while ((index = body.find("\r\n")) != std::string::npos)
+	{
+		lines.push_back(body.substr(0, index));
+		body = body.substr(index + 2);
+	}
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		size = utils::to_int(lines[i++]);
+		res.append(lines[i].c_str(), size);
+	}
+	return (res);
+}
+
