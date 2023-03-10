@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:20:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 14:47:03 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 16:39:22 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,16 +78,18 @@ void	charvec_shrink_to_fit(CharVec& cv)
 
 void	print_msg_with_crlf(const std::string& s)
 {
+	std::stringstream	ss;
+
 	for (size_t i = 0; i < s.size(); i++)
 	{
 		if (s[i] == '\r')
-			std::cout << "\\r";
+			ss << "\\r";
 		else if (s[i] == '\n')
-			std::cout << "\\n" << std::endl;
+			ss << "\\n\n";
 		else
-			std::cout << s[i];
+			ss << s[i];
 	}
-	std::cout << std::endl;
+	std::cout << ss.str() << std::ends;
 }
 
 std::string	itoa(size_t i)

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 13:15:16 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 18:00:30 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,10 @@
 
 const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE", "HEAD", "PUT"};
 
-const char*	TmpRequest::_fields_string[] = {"method", "uri", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary"};
+const char*	TmpRequest::_fields_string[] = {"method", "uri", "query", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary"};
 
-TmpRequest::TmpRequest(void) : _is_complete(false), _is_complete_header(false), _req(""), _status_code(S200), _logger() {}
+TmpRequest::TmpRequest(void) 
+	: _is_complete(false), _is_complete_header(false), _req(""), _status_code(S200), _logger(), _chunked_debug_size(0), _debugged_index(0) {}
 
 TmpRequest::~TmpRequest(void) {}
 
@@ -83,11 +84,11 @@ void	TmpRequest::print_request_header(void) const
 		for (; it2 != this->_query.end(); it2++)
 			this->_logger.debug(it2->first + std::string(": ") + it2->second);
 	}
-	if (!this->_body.empty())
-	{
-		this->_logger.debug(" ----------- Body ----------- ");
-		utils::print_msg_with_crlf(this->_body);
-	}
+	// if (!this->_body.empty())
+	// {
+	// 	this->_logger.debug(" ----------- Body ----------- ");
+	// 	utils::print_msg_with_crlf(this->_body);
+	// }
 #else
 	this->_logger.info(this->_method + " " + this->_uri + " " + this->_host + ":" + this->_port);
 #endif
@@ -132,6 +133,7 @@ void	TmpRequest::extract_header_info(void)
 	this->_header_info.insert(std::make_pair(PROTOCOL, split[2]));
 	for (size_t i = 1; i < header_lines.size(); i++)
 	{
+		// this->_logger.warn(header_lines[i]);
 		split = utils::ft_split(header_lines[i]);
 		if (split.front() == "Host:")
 		{
@@ -227,15 +229,27 @@ void	TmpRequest::handle_post(const std::string& req)
 	if (this->_header_info.count(TRANSFER_ENCODING) > 0 && this->_header_info[TRANSFER_ENCODING] == "chunked")
 	{
 		if (this->_chunked_body.empty())
+		{
+			this->_logger.debug("Receving chunked request...");
 			this->_chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
-		else
+		}
+		else if (this->_chunked_body.find("0\r\n\r\n") == std::string::npos)
 			this->_chunked_body.append(req);
-		// utils::print_msg_with_crlf(this->_chunked_body);
-		std::cout << "chunked_body.size(): " << this->_chunked_body.size() << std::endl;
+#if DEBUG
+		this->_chunked_debug_size += req.size();
+		if (this->_chunked_debug_size >= (CHUNKED_DEBUG * this->_debugged_index))
+		{
+			this->_debugged_index++;
+			this->_logger.debug("Received " + std::to_string(this->_chunked_debug_size));
+		}
+#endif	
 		if (this->_chunked_body.find("0\r\n\r\n") != std::string::npos)
 		{
 			this->_is_complete = true;
 			this->_body = this->tidy_up_chunked_body();
+#if DEBUG
+		this->_logger.debug("Received size " + std::to_string(this->_body.size()) + " from chunked request");
+#endif
 		}
 	}
 	else if (this->_header_info.count(CONTENT_LENGTH) > 0)

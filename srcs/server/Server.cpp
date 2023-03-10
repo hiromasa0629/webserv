@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 21:42:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 16:54:39 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -143,8 +143,7 @@ std::string			Server::read_request(int fd)
 	ret = recv(fd, buf, BUFFER_SIZE, 0);
 	while (ret > 0)
 	{
-		for (ssize_t i = 0; i < ret; i++)
-			res.push_back(buf[i]);
+		res.append(buf, ret);
 		std::memset(buf, 0, BUFFER_SIZE);
 		if (ret <= BUFFER_SIZE)
 			break ;
@@ -267,7 +266,7 @@ void	Server::handle_pollin_select(int fd)
 		if (!this->_fd_requests[fd].get_is_complete())
 		{
 #if DEBUG
-			std::cout << "NOT COMPLETE. fd: " << fd << std::endl;
+			// std::cout << "NOT COMPLETE. fd: " << fd << std::endl;
 #endif
 			return ;
 		}
@@ -303,10 +302,6 @@ void	Server::handle_pollout_select(int fd)
 		this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
 #endif
 
-	TmpResponse		response;
-	std::string		response_msg;
-	std::string		body;
-	std::string		header;
 	std::string		res;
 
 	try
@@ -318,6 +313,8 @@ void	Server::handle_pollout_select(int fd)
 		}
 		else
 			res.append(this->_fd_response[fd].get_body());
+		
+		// utils::print_msg_with_crlf(res);
 		size_t	b_sent;
 		
 		b_sent = send(fd, res.c_str(), res.size(), 0);

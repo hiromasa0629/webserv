@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 21:32:29 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:32:00 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,6 @@ ResponseConfig::ResponseConfig(const TmpRequest& req, const ServerConfig& sconfi
 	this->configure(sconfig);
 	if (this->_redirection.first)
 		return ;
-	this->handle_error();
 }
 
 utils::StrVec	ResponseConfig::get_directives(const std::string& key) const
@@ -124,7 +123,8 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 		else
 			this->_path.append(segmented_uri[i].s);
 		
-		this->handle_error();
+		if (i == 0)
+			this->handle_error();
 
 		if (i == 0)
 		{
@@ -132,8 +132,6 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 			int			tmp_j = 0;
 			if (l_config.count(segmented_uri[i].s) > 0)
 				tmp_j = 1;
-			// std::cout << "segmented_uri.size(): " << segmented_uri.size() << std::endl;
-			// std::cout << "tmp_j: " << tmp_j << std::endl;
 			for (size_t j = tmp_j; j < segmented_uri.size(); j++)
 			{
 				if (j != 0)
@@ -141,13 +139,14 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 
 				std::pair<bool, std::string>	cgi_pair;
 
-				// std::cout << "cgi_path: " << cgi_path << std::endl;
 				if (this->_directives.count("cgi") && (cgi_pair = segmented_uri[j].is_cgi(this->_directives["cgi"])).first)
 				{
 					std::string	path_info;
 
 					for (size_t k = j + 1; k < segmented_uri.size(); k++)
 						path_info.append(segmented_uri[k].s);
+					if (path_info.empty())
+						path_info = this->_req.get_request_field(URI);
 					this->_cgi.first = true;
 					// std::cout << "cgi_path: " << cgi_path << std::endl;
 					this->_cgi.second = ResponseCgi(cgi_path, this->_req.get_body(), cgi_pair.second, this->_envp);
@@ -190,12 +189,9 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 		if (this->_req.get_request_field(METHOD) == "PUT")
 		{
 			this->_put.first = true;
-			this->_put.second.append(this->_directives["root"][0]);
 			if (this->_directives.count("upload") > 0)
 			{
 				std::string	upload = this->_directives["upload"][0];
-				if (upload.front() != '/')
-					upload.insert(upload.begin(), '/');
 				this->_put.second.append(upload);
 
 				std::string	rest_of_the_uri;
@@ -204,7 +200,10 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 				this->_put.second.append(rest_of_the_uri);
 			}
 			else
+			{
+				this->_put.second.append(this->_directives["root"][0]);
 				this->_put.second.append(this->_req.get_request_field(URI));
+			}
 
 			return ;
 		}
@@ -259,6 +258,7 @@ void	ResponseConfig::handle_error(void) const
 		if (!std::count(sv.begin(), sv.end(), "_") && !std::count(sv.begin(), sv.end(), req_server_name) && !this->is_localhost(req_server_name))
 			throw ServerErrorException(__LINE__, __FILE__, E404, req_server_name + " invalid server_name");
 	}
+
 	if (this->_directives.count("limit_except") > 0)
 	{
 		utils::StrVec	sv;
@@ -282,11 +282,7 @@ bool	ResponseConfig::is_localhost(const std::string& req_server_name) const
 	return (req_server_name == "localhost" || req_server_name == "127.0.0.1");
 }
 
-ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : s(s), is_last(is_last) 
-{
-	if (this->s == "/")
-		this->s = "";
-}
+ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : s(s), is_last(is_last) {}
 
 std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVec& cgis) const
 {

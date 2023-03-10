@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:53:38 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 15:23:24 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:55:01 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,8 @@
 # include <algorithm>
 # include "ServerErrorException.hpp"
 
+
+# define CHUNKED_DEBUG 1000000
 class TmpRequest {
 	public:
 		TmpRequest(void);
@@ -137,6 +139,8 @@ class TmpRequest {
 		 */
 		static const char*					_methods[];
 		
+		size_t								_chunked_debug_size;
+		size_t								_debugged_index;
 		/**
 		 * @brief static strings to print out RequestField enum
 		 */

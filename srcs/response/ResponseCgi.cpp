@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 22:04:54 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:34:50 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -59,9 +59,15 @@ void	ResponseCgi::execute(void)
 
 		char		buf[READ_BUFFER];
 		ssize_t		ret;
+		std::memset(buf, 0, READ_BUFFER);
 		while ((ret = read(pipe_to_parent[0], buf, READ_BUFFER)) > 0)
+		{
 			this->_response_msg.append(buf);
-
+			std::memset(buf, 0, READ_BUFFER);
+		}
+		
+		// std::cerr << this->_response_msg << std::endl;
+		
 		int status;
 		if (waitpid(pid, &status, 0) == -1)
 			throw ServerErrorException(__LINE__, __FILE__, E500, "waitpid() failed");
@@ -102,12 +108,12 @@ void	ResponseCgi::child_process(int* pipe_to_child, int* pipe_to_parent)
 	argv.push_back(NULL);
 	
 	envp = construct_envp(this->_envp, this->_add_envp);
-	for (size_t i = 0; i < envp.size(); i++)
-	{
-		if (envp[i] == NULL)
-			break ;
-		std::cerr << envp[i] << std::endl;
-	}
+	// for (size_t i = 0; i < envp.size(); i++)
+	// {
+	// 	if (envp[i] == NULL)
+	// 		break ;
+	// 	std::cerr << envp[i] << std::endl;
+	// }
 
 	close(pipe_to_child[1]);
 	close(pipe_to_parent[0]);

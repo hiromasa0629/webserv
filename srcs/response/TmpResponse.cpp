@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 21:35:46 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:01:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,9 +69,13 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 
 	if (this->_body.size() > RESPONSE_BUFFER)
 	{
+#if DEBUG
+		this->_logger.debug("Sending size " + std::to_string(this->_body.size()) + " in chunked response...");
+#endif
 		this->_is_complete_response = false;
 
 		this->_header.set_is_chunked(true);
+		this->_header.set_content_length(0);
 		this->_header.set_status(S200);
 		this->_header.construct();
 	}
@@ -103,7 +107,6 @@ std::string	TmpResponse::get_body(void)
 			chunked_body.append(this->_body.c_str(), this->_body.size()).append("\r\n");
 			this->_body = this->_body.substr(this->_body.size());
 		}
-		std::cout << "response_body.size(): " << this->_body.size() << std::endl;
 		return (chunked_body);
 	}
 	else
@@ -140,6 +143,9 @@ void	TmpResponse::handle_put(const std::string& path)
 	std::ofstream	outfile;
 
 	outfile.open(path);
+#if DEBUG
+	this->_logger.debug("PUT path: " + path);
+#endif
 	if (!outfile.good())
 		throw ServerErrorException(__LINE__, __FILE__, E500, "Bad PUT request");
 	outfile.write(this->_req.get_body().c_str(), this->_req.get_body().size());

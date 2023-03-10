@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:27:04 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/08 23:37:26 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:00:44 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include <vector>
 # include <sstream>
 # include "utils.hpp"
+# include "Logger.hpp"
 
 class ResponseHeader {
 	public:
@@ -43,6 +44,8 @@ class ResponseHeader {
 		int							_content_length;
 		std::string					_content_type;
 		bool						_is_chunked;
+		
+		Logger						_logger;
 };
 
 #endif

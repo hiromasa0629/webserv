@@ -6,13 +6,13 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 13:56:47 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/10 17:41:03 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ResponseHeader.hpp"
 
-ResponseHeader::ResponseHeader(void)
+ResponseHeader::ResponseHeader(void) : _content_length(0), _content_type(""), _is_chunked(false)
 {
 	this->_codes.insert(std::make_pair(E404, "Not Found"));
 	this->_codes.insert(std::make_pair(E403, "Forbidden"));
@@ -52,11 +52,22 @@ void	ResponseHeader::construct(void)
 
 void	ResponseHeader::construct(const std::string& header)
 {
-	this->_response_header = header;
+	std::string	h;
+	
+	h = header;
+	if (h.find("Status:") != std::string::npos)
+	{
+		h.erase(h.begin(), h.begin() + 7);
+		h = "HTTP/1.1" + h;
+	}
+	this->_response_header = h;
 }
 
 std::string	ResponseHeader::get_response_header(void) const
 {
+#if DEBUG
+	this->_logger.debug(this->_response_header.substr(0, this->_response_header.find("\r\n")));
+#endif
 	return (this->_response_header);
 }
 
