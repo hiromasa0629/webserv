@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/10 17:32:00 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/11 19:53:02 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,14 +149,40 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 						path_info = this->_req.get_request_field(URI);
 					this->_cgi.first = true;
 					// std::cout << "cgi_path: " << cgi_path << std::endl;
-					this->_cgi.second = ResponseCgi(cgi_path, this->_req.get_body(), cgi_pair.second, this->_envp);
+					if (this->_req.get_request_field(TRANSFER_ENCODING) == "chunked")
+					{
+						std::ifstream	infile;
+						std::string		buf;
+						size_t			size;
+						
+						infile.open(this->_req.get_unchunked_filename(), std::ios::binary);
+						if (!infile.good())
+							throw ServerErrorException(__LINE__, __FILE__, E500, "Invalid unchunked file");
+						infile.seekg(0, infile.end);
+						size = infile.tellg();
+						infile.seekg(0, infile.beg);
+						buf.resize(size, '\0');
+						infile.read(const_cast<char*>(buf.data()), size);
+						infile.close();
+						if (std::remove(this->_req.get_unchunked_filename().c_str()) != 0)
+							this->_logger.warn(this->_req.get_unchunked_filename() + " unchunked file remove failed");
+						this->_cgi.second = ResponseCgi(cgi_path, buf, cgi_pair.second, this->_envp);
+						this->_cgi.second.set_envp("CONTENT_LENGTH", utils::itoa(buf.size()));
+					}
+					else
+					{
+						this->_cgi.second = ResponseCgi(cgi_path, this->_req.get_body(), cgi_pair.second, this->_envp);
+						this->_cgi.second.set_envp("CONTENT_LENGTH", utils::itoa(this->_req.get_body().size()));
+					}
 					this->_cgi.second.set_envp("REQUEST_METHOD", this->_req.get_request_field(METHOD));
 					this->_cgi.second.set_envp("SERVER_PROTOCOL", this->_req.get_request_field(PROTOCOL));
 					this->_cgi.second.set_envp("PATH_INFO", path_info);
 					this->_cgi.second.set_envp("QUERY_STRING", this->_req.get_request_field(QUERY));
-					this->_cgi.second.set_envp("CONTENT_LENGTH", utils::itoa(this->_req.get_body().size()));
 					this->_cgi.second.set_envp("SERVER_NAME", this->_req.get_request_field(SERVER_NAME));
 					this->_cgi.second.set_envp("SERVER_PORT", this->_req.get_request_field(PORT));
+#if DEBUG
+					this->_logger.debug("Executing " + cgi_path);
+#endif
 					this->_cgi.second.execute();
 					
 					return ;

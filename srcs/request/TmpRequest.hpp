@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:53:38 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/10 17:55:01 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/11 18:41:19 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@ class TmpRequest {
 		bool			get_is_complete(void) const;
 		enum StatusCode	get_status_code(void) const;
 		std::string		get_body(void) const;
+		std::string		get_unchunked_filename(void) const;
 		
 		void		print_request_header(void) const;
 		
@@ -139,8 +140,14 @@ class TmpRequest {
 		 */
 		static const char*					_methods[];
 		
+		std::ofstream*						_chunked_outfile;
+		std::ifstream*						_chunked_infile;
+		std::string							_chunked_filename;
+		std::string							_unchunked_filename;
+		
 		size_t								_chunked_debug_size;
 		size_t								_debugged_index;
+		
 		/**
 		 * @brief static strings to print out RequestField enum
 		 */

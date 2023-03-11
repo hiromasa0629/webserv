@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:19:56 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 12:52:31 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/11 18:11:51 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,8 +57,6 @@ class TmpResponse {
 		void		handle_normal(const std::string& path);
 		void		handle_error(enum StatusCode status, const ServerConfig& sconfig);
 		
-		
-
 		TmpRequest			_req;
 		bool				_is_complete_response;
 

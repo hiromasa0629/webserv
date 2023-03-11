@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:52:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 00:37:36 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/11 19:31:12 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 # include <dirent.h>
 # include "ResponseAutoindex.hpp"
 # include "ResponseCgi.hpp"
+# include "Logger.hpp"
 
 struct ResponseConfigUriSegment {
 	ResponseConfigUriSegment(const std::string& s, bool is_last);
@@ -64,6 +65,7 @@ class ResponseConfig {
 		std::pair<bool, ResponseCgi>		_cgi;
 		std::pair<bool, std::string>		_redirection;
 		std::pair<bool, std::string>		_put;
+		Logger								_logger;
 
 };
 

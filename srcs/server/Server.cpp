@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/10 16:54:39 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/11 18:09:44 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -255,7 +255,8 @@ void	Server::handle_pollin_select(int fd)
 
 	try
 	{
-		std::string	req;
+		std::string		req;
+		std::ofstream	outfile;
 
 		req = this->read_request(fd);
 		if (req.empty())	// empty request or closed by client

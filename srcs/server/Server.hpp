@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 14:41:08 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/11 18:09:40 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,6 @@ class Server {
 	
 		Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const Config& config, char** envp);
 		~Server(void);
-		Server(const Server &src);
 		// Server	&operator=(const Server &rhs);
 
 		void	run(void);
@@ -43,6 +42,7 @@ class Server {
 
 	private:
 		Server(void);
+		Server(const Server &src);
 		
 		/**
 		 * @brief bind address to socket
@@ -122,6 +122,7 @@ class Server {
 		 * @return std::vector<Socket>::iterator 
 		 */
 		std::vector<Socket>::iterator	get_socket_from_fd(int fd);
+		
 		
 		// std::vector<pollfd_t>		_fds; // poll()
 		std::vector<Socket>			_sockets;

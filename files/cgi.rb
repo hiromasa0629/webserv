@@ -107,7 +107,6 @@ if __FILE__ == $PROGRAM_NAME
 	
 	body = STDIN.gets
 	cgi = Cgi.new(body)
-	# STDERR.puts "here"
 	method = ENV["REQUEST_METHOD"]
 	if method == "GET"
 		cgi.execute_get()
