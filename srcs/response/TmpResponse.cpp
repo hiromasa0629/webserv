@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 14:16:38 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 16:14:20 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -216,6 +216,7 @@ static std::string	read_file(const std::string& path)
 #if DEBUG
 	Logger().debug("Serving file size: " + std::to_string(s.size()));
 #endif
+	infile.close();
 	return (s);
 }
 void	TmpResponse::handle_normal(const std::string& path)

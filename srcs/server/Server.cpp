@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 15:38:16 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 16:38:15 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,7 +78,8 @@ void	Server::run(void)
 	}
 	catch (const std::exception& e)
 	{
-		this->_logger.error(e.what());
+
+		this->_logger.error(std::string(std::strerror(errno)) + " " + e.what());
 		std::exit(errno);
 	}
 }
@@ -226,7 +227,7 @@ std::string			Server::read_request(int fd)
 // }
 
 
-void	Server::accept_connection_select(int fd, int* maxfd)
+void	Server::accept_connection_select(int fd)
 {
 	int	newfd;
 	std::vector<Socket>::iterator	it;
@@ -237,8 +238,8 @@ void	Server::accept_connection_select(int fd, int* maxfd)
 		throw std::runtime_error("Server::accept_connection_select() accept");
 	this->_logger.info("Server::accept_connection_select() accepted from " + *it);
 	fcntl(newfd, F_SETFL, O_NONBLOCK);
-	if (*maxfd < newfd)
-		*maxfd = newfd;
+	if (this->_maxfd < newfd)
+		this->_maxfd = newfd;
 	FD_SET(newfd, &this->_fd_sets.first);
 	it = this->_sockets.begin();
 	for (; it != this->_sockets.end(); it++)
@@ -279,6 +280,8 @@ void	Server::handle_pollin_select(int fd)
 		if (e.get_status() == E0)	// empty request or closed by client
 		{
 			FD_CLR(fd, &this->_fd_sets.first);
+			if (fd == this->_maxfd)
+				this->_maxfd--;
 			this->_fd_requests.erase(fd);
 			if (close(fd) != 0)
 				throw std::runtime_error(std::to_string(__LINE__) + " close error");
@@ -322,8 +325,11 @@ void	Server::handle_pollout_select(int fd)
 		if (b_sent != res.size())
 			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "send error"));
 		if (this->_fd_response[fd].get_is_complete_response())
+		{
 			if (close(fd) != 0)
 				throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
+			this->_logger.debug("Connection closed. fd: " + std::to_string(fd));
+		}
 	}
 	catch (const ServerErrorException& e)
 	{
@@ -337,6 +343,8 @@ void	Server::handle_pollout_select(int fd)
 		if (b_sent != res.size())
 		{
 			FD_CLR(fd, &this->_fd_sets.second);
+			if (fd == this->_maxfd)
+				this->_maxfd--;
 			this->_fd_requests.erase(fd);
 			this->_fd_response.erase(fd);
 			close(fd);
@@ -356,6 +364,8 @@ void	Server::handle_pollout_select(int fd)
 		if (b_sent != res.size())
 		{
 			FD_CLR(fd, &this->_fd_sets.second);
+			if (fd == this->_maxfd)
+				this->_maxfd--;
 			this->_fd_requests.erase(fd);
 			this->_fd_response.erase(fd);
 			close(fd);
@@ -366,8 +376,9 @@ void	Server::handle_pollout_select(int fd)
 
 	if (this->_fd_response[fd].get_is_complete_response())
 	{
-		this->_logger.debug("Connection closed. fd: " + std::to_string(fd));
 		FD_CLR(fd, &this->_fd_sets.second);
+		if (fd == this->_maxfd)
+			this->_maxfd--;
 		this->_fd_requests.erase(fd);
 		this->_fd_response.erase(fd);
 	}
@@ -377,41 +388,43 @@ void	Server::main_loop_select(void)
 {
 	fd_set							read_fds;
 	fd_set							write_fds;
-	int								maxfd;
 	int								select_ready;
 	std::vector<Socket>::iterator	it;
 
 	FD_ZERO(&this->_fd_sets.first);
 	FD_ZERO(&this->_fd_sets.second);
 	it = this->_sockets.begin();
-	maxfd = it->get_socketfd();
+	this->_maxfd = it->get_socketfd();
 	for (; it != this->_sockets.end(); it++)
 	{
 		FD_SET(it->get_socketfd(), &this->_fd_sets.first);
-		if (maxfd < it->get_socketfd())
-			maxfd = it->get_socketfd();
+		if (this->_maxfd < it->get_socketfd())
+			this->_maxfd = it->get_socketfd();
 	}
 	while (1)
 	{
 		// this->_logger.listening();
 		// this->_logger.debug("selecting...");
-		read_fds = this->_fd_sets.first;
-		write_fds = this->_fd_sets.second;
-		select_ready = select(maxfd + 1, &read_fds, &write_fds, NULL, &this->_timeval);
+		// read_fds = this->_fd_sets.first;
+		// write_fds = this->_fd_sets.second;
+		FD_COPY(&this->_fd_sets.first, &read_fds);
+		FD_COPY(&this->_fd_sets.second, &write_fds);
+		select_ready = select(this->_maxfd + 1, &read_fds, &write_fds, NULL, &this->_timeval);
 		if (select_ready < 0)
 			throw std::runtime_error("Server::main_loop_selection() select");
 		if (select_ready == 0)
 			continue ;
-		for (int i = 0; i < maxfd + 1; i++)
+		for (int i = 0; i < this->_maxfd + 1; i++)
 		{
+			// std::cout << "this->_maxfd: " << this->_maxfd << std::endl;
 			if (!FD_ISSET(i, &read_fds))
 				continue ;
 			if (this->is_socketfd(i))
-				this->accept_connection_select(i, &maxfd);
+				this->accept_connection_select(i);
 			else
 				this->handle_pollin_select(i);
 		}
-		for (int i = 0; i < maxfd + 1; i++)
+		for (int i = 0; i < this->_maxfd + 1; i++)
 		{
 			if (!FD_ISSET(i, &write_fds))
 				continue;

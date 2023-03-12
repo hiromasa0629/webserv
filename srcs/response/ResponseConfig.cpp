@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 15:21:28 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 15:49:48 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -206,23 +206,33 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 
 		if (segmented_uri[i].is_last)
 		{
-			if (opendir(this->_path.c_str()) != NULL && is_autoindex)
+			DIR*	dir;
+
+			if ((dir = opendir(this->_path.c_str())) != NULL && is_autoindex)
 			{
 				this->_autoindex.first = true;
 				this->_autoindex.second = ResponseAutoindex(this->_path, this->_req.get_request_field(URI), this->_req.get_request_field(SERVER_NAME), this->_req.get_request_field(PORT));
+				closedir(dir);
 			}
-			else if (opendir(this->_path.c_str()) != NULL)
+			else if ((dir = opendir(this->_path.c_str())) != NULL)
 			{
 				if (this->_directives.count("index") == 0)
+				{
+					closedir(dir);
 					throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
+				}
 
 				this->_path.append("/").append(this->_directives["index"][0]);
 
 				std::ifstream	infile(this->_path.c_str());
 
 				if (!infile.good())
+				{
+					closedir(dir);
 					throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
+				}
 				infile.close();
+				closedir(dir);
 			}
 			else
 			{
