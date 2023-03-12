@@ -33,10 +33,11 @@ INCLUDES	= -Isrcs/utils \
 				-Isrcs/logger \
 				-Isrcs/request \
 				-Isrcs/response
-LDFLAGS		= -g -lstdc++ -fsanitize=address -g
+LDFLAGS		= -lstdc++ -fsanitize=address -g
 
 TESTFILE	= tests/test.conf
 BANANE		= tests/youpibanane.conf
+CC		= g++
 
 all: $(NAME)
 # @$(MAKE) clean

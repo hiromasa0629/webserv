@@ -78,7 +78,8 @@ class Config {
 		Config(void);
 		Config(const char* config_file);
 		~Config(void);
-		Config(const Config &src);
+//		Config(const Config &src);
+//		Config&	operator=(const Config& rhs);
 
 		void								print_config(void);
 		const StrToSConfigMap&				get_sconfig(void) const;

@@ -21,6 +21,7 @@
 # include "Logger.hpp"
 # include <algorithm>
 # include "ServerErrorException.hpp"
+# include <string>
 
 
 # define CHUNKED_DEBUG 1000000

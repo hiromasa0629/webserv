@@ -36,7 +36,7 @@ Logger &Logger::operator=(const Logger &ref) {
 	}
 	else {
 		this->_log_path = ref._log_path;
-		temp = new std::ofstream(ref._log_path);
+		temp = new std::ofstream(ref._log_path.c_str());
 		if (temp->is_open() == false){
 			this->warn("Unable to set log path. Defaulting to default stream");
 			return *this;
@@ -59,7 +59,7 @@ Logger::Logger(const std::string &path, std::ostream *default_stream) : _log_pat
 		this->warn("Path to log is empty. Defaulting to default stream");
 		return;
 	}
-	temp = new std::ofstream(path);
+	temp = new std::ofstream(path.c_str());
 	if (temp->is_open() == false){
 		this->warn("Unable to set log path. Defaulting to default stream");
 		return;

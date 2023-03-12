@@ -34,10 +34,10 @@ Config::Config(const char* config_file)
 	}
 }
 
-Config::Config(const Config &src)
-{
-	*this = src;
-}
+//Config::Config(const Config &src)
+//{
+//	*this = src;
+//}
 
 /***********************************
  *  Functions

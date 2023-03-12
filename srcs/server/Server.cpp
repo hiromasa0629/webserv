@@ -56,10 +56,10 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 
 }
 
-Server::Server(const Server &src)
-{
-	*this = src;
-}
+//Server::Server(const Server &src)
+//{
+//	*this = src;
+//}
 
 // Server	&Server::operator=(const Server &rhs)
 // {
@@ -251,7 +251,7 @@ void	Server::handle_pollin_select(int fd)
 {
 #if DEBUG
 	if (this->_fd_requests.count(fd) == 0)
-		this->_logger.info("POLLIN (select) fd: " + std::to_string(fd));
+		this->_logger.info("POLLIN (select) fd: " + utils::itoa(fd));
 #endif
 
 	try
@@ -284,7 +284,7 @@ void	Server::handle_pollin_select(int fd)
 				this->_maxfd--;
 			this->_fd_requests.erase(fd);
 			if (close(fd) != 0)
-				throw std::runtime_error(std::to_string(__LINE__) + " close error");
+				throw std::runtime_error(utils::itoa(__LINE__) + " close error");
 			return ;
 		}
 		else
@@ -303,7 +303,7 @@ void	Server::handle_pollout_select(int fd)
 {
 #if DEBUG
 	if (this->_fd_response.count(fd) == 0)
-		this->_logger.info("POLLOUT (select) fd: " + std::to_string(fd));
+		this->_logger.info("POLLOUT (select) fd: " + utils::itoa(fd));
 #endif
 
 	std::string		res;
@@ -328,7 +328,7 @@ void	Server::handle_pollout_select(int fd)
 		{
 			if (close(fd) != 0)
 				throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
-			this->_logger.debug("Connection closed. fd: " + std::to_string(fd));
+			this->_logger.debug("Connection closed. fd: " + utils::itoa(fd));
 		}
 	}
 	catch (const ServerErrorException& e)
@@ -405,10 +405,10 @@ void	Server::main_loop_select(void)
 	{
 		// this->_logger.listening();
 		// this->_logger.debug("selecting...");
-		// read_fds = this->_fd_sets.first;
-		// write_fds = this->_fd_sets.second;
-		FD_COPY(&this->_fd_sets.first, &read_fds);
-		FD_COPY(&this->_fd_sets.second, &write_fds);
+		read_fds = this->_fd_sets.first;
+		write_fds = this->_fd_sets.second;
+		//FD_COPY(&this->_fd_sets.first, &read_fds);
+		//FD_COPY(&this->_fd_sets.second, &write_fds);
 		select_ready = select(this->_maxfd + 1, &read_fds, &write_fds, NULL, &this->_timeval);
 		if (select_ready < 0)
 			throw std::runtime_error("Server::main_loop_selection() select");

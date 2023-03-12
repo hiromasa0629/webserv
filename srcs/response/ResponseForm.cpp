@@ -105,8 +105,8 @@ ResponseFormField::ResponseFormField(utils::StrVec::iterator start, utils::StrVe
 		{
 			for (size_t i = 1; i < split.size(); i++)
 			{
-				if (split[i].back() == ';')
-					split[i].pop_back();
+				if (split[i][split[i].length() - 1] == ';')
+					split[i].erase(split[i].end() - 1);
 				if (!std::strncmp(split[i].c_str(), "name=", 5))
 					this->_name = std::string(split[i].begin() + 6, split[i].end() - 1);
 				else if (!std::strncmp(split[i].c_str(), "filename=", 9))

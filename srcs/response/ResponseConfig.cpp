@@ -110,18 +110,18 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 	segmented_uri = split_uri(this->_req.get_request_field(URI));
 	for (size_t i = 0; i < segmented_uri.size(); i++)
 	{
-		if (i == 0 && l_config.count(segmented_uri[i].s) > 0)
+		if (i == 0 && l_config.count(segmented_uri[i]._s) > 0)
 		{
-			utils::StrToStrVecMap			l_directives = l_config[segmented_uri[i].s].get_directives();
-			overwrite_directives(l_config[segmented_uri[i].s].get_directives(), this->_directives, is_redirect, is_autoindex);
+			utils::StrToStrVecMap			l_directives = l_config[segmented_uri[i]._s].get_directives();
+			overwrite_directives(l_config[segmented_uri[i]._s].get_directives(), this->_directives, is_redirect, is_autoindex);
 
 			if (l_directives.count("root"))
 				this->_path = this->_directives["root"][0];
 			else
-				this->_path.append(segmented_uri[i].s);
+				this->_path.append(segmented_uri[i]._s);
 		}
 		else
-			this->_path.append(segmented_uri[i].s);
+			this->_path.append(segmented_uri[i]._s);
 
 		if (i == 0)
 			this->handle_error();
@@ -130,12 +130,12 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 		{
 			std::string	cgi_path = this->_path;
 			int			tmp_j = 0;
-			if (l_config.count(segmented_uri[i].s) > 0)
+			if (l_config.count(segmented_uri[i]._s) > 0)
 				tmp_j = 1;
 			for (size_t j = tmp_j; j < segmented_uri.size(); j++)
 			{
 				if (j != 0)
-					cgi_path.append(segmented_uri[j].s);
+					cgi_path.append(segmented_uri[j]._s);
 
 				std::pair<bool, std::string>	cgi_pair;
 
@@ -144,7 +144,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 					std::string	path_info;
 
 					for (size_t k = j + 1; k < segmented_uri.size(); k++)
-						path_info.append(segmented_uri[k].s);
+						path_info.append(segmented_uri[k]._s);
 					if (path_info.empty())
 						path_info = this->_req.get_request_field(URI);
 					this->_cgi.first = true;
@@ -172,11 +172,11 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 				this->_redirection.second = return_uri;
 				return ;
 			}
-			if (return_uri.front() != '/')
+			if (return_uri[0] != '/')
 				return_uri.insert(return_uri.begin(), '/');
 			this->_redirection.second.append(return_uri);
 			for (size_t j = i + 1; j < segmented_uri.size(); j++)
-				rest_of_the_uri.append(segmented_uri[j].s);
+				rest_of_the_uri.append(segmented_uri[j]._s);
 			this->_redirection.second.append(rest_of_the_uri);
 
 			return ;
@@ -192,7 +192,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 
 				std::string	rest_of_the_uri;
 				for (size_t j = i + 1; j < segmented_uri.size(); j++)
-					rest_of_the_uri.append(segmented_uri[j].s);
+					rest_of_the_uri.append(segmented_uri[j]._s);
 				this->_put.second.append(rest_of_the_uri);
 			}
 			else
@@ -204,7 +204,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 			return ;
 		}
 
-		if (segmented_uri[i].is_last)
+		if (segmented_uri[i]._is_last)
 		{
 			DIR*	dir;
 
@@ -238,10 +238,10 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 			{
 				std::ifstream	infile;
 
-				infile.open(this->_path);
+				infile.open(this->_path.c_str());
 				if (!infile.good())
 				{
-					infile.open(this->_path + ".html");
+					infile.open((this->_path + ".html").c_str());
 					if (!infile.good())
 						throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
 					this->_path.append(".html");
@@ -279,7 +279,7 @@ void	ResponseConfig::handle_error(void) const
 	{
 		size_t	client_max_body_size;
 
-		client_max_body_size = std::stoi(this->_directives.at("client_max_body_size")[0]);
+		client_max_body_size = std::atoi(this->_directives.at("client_max_body_size")[0].c_str());
 		if (client_max_body_size < this->_req.get_body().size())
 			throw ServerErrorException(__LINE__, __FILE__, E413, "Body size too large");
 		if (!this->_req.get_unchunked_filename().empty())
@@ -287,7 +287,7 @@ void	ResponseConfig::handle_error(void) const
 			std::ifstream	infile;
 			size_t			size;
 
-			infile.open(this->_req.get_unchunked_filename(), std::ios::binary);
+			infile.open(this->_req.get_unchunked_filename().c_str(), std::ios::binary);
 			if (!infile.good())
 				throw ServerErrorException(__LINE__, __FILE__, E500, "Handle error infile failed");
 			infile.seekg(0, infile.end);
@@ -304,7 +304,7 @@ bool	ResponseConfig::is_localhost(const std::string& req_server_name) const
 	return (req_server_name == "localhost" || req_server_name == "127.0.0.1");
 }
 
-ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : s(s), is_last(is_last) {}
+ResponseConfigUriSegment::ResponseConfigUriSegment(const std::string& s, bool is_last) : _s(s), _is_last(is_last) {}
 
 std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVec& cgis) const
 {
@@ -313,9 +313,9 @@ std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVe
 		std::string	ext = cgis[i++];
 		std::string cmd = cgis[i];
 
-		if (s.length() < ext.length())
+		if (_s.length() < ext.length())
 			continue ;
-		if (s.substr(s.length() - ext.length()) == ext)
+		if (_s.substr(_s.length() - ext.length()) == ext)
 			return (std::make_pair(true, cmd));
 	}
 	return (std::make_pair(false, std::string()));

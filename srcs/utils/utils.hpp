@@ -17,6 +17,11 @@
 # include <map>
 # include <sstream>
 # include <sys/poll.h>
+# include <cstring>
+# include <ctime>
+# include <algorithm>
+# include <sys/types.h>
+# include <sys/wait.h>
 
 # define BUFFER_SIZE	1000
 # define DEBUG 1

@@ -70,7 +70,7 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 	if (this->_body.size() > RESPONSE_BUFFER)
 	{
 #if DEBUG
-		this->_logger.debug("Sending size " + std::to_string(this->_body.size()) + " in chunked response...");
+		this->_logger.debug("Sending size " + utils::itoa(this->_body.size()) + " in chunked response...");
 #endif
 		this->_is_complete_response = false;
 
@@ -142,7 +142,7 @@ void	TmpResponse::handle_put(const std::string& path)
 {
 	std::ofstream	outfile;
 
-	outfile.open(path, std::ios::binary | std::ios::out);
+	outfile.open(path.c_str(), std::ios::binary | std::ios::out);
 #if DEBUG
 	this->_logger.debug("PUT path: " + path);
 #endif
@@ -154,7 +154,7 @@ void	TmpResponse::handle_put(const std::string& path)
 		std::string		buf;
 		size_t			size;
 
-		infile.open(this->_req.get_unchunked_filename(), std::ios::binary);
+		infile.open(this->_req.get_unchunked_filename().c_str(), std::ios::binary);
 		if (!infile.good())
 		{
 			outfile.close();
@@ -210,11 +210,11 @@ static std::string	read_file(const std::string& path)
 	std::stringstream	ss;
 	std::string			s;
 
-	infile.open(path, std::ios::binary);
+	infile.open(path.c_str(), std::ios::binary);
 	ss << infile.rdbuf();
 	s = ss.str();
 #if DEBUG
-	Logger().debug("Serving file size: " + std::to_string(s.size()));
+	Logger().debug("Serving file size: " + utils::itoa(s.size()));
 #endif
 	infile.close();
 	return (s);
@@ -261,7 +261,7 @@ void	TmpResponse::handle_error(enum StatusCode status, const ServerConfig& sconf
 	{
 		std::ifstream	infile;
 
-		infile.open(error_file);
+		infile.open(error_file.c_str());
 		if (!infile.good())
 		{
 			this->_body = default_error_page();

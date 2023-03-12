@@ -42,7 +42,7 @@ class Server {
 
 	private:
 		Server(void);
-		Server(const Server &src);
+//		Server(const Server &src);
 
 		/**
 		 * @brief bind address to socket

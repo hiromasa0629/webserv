@@ -26,8 +26,8 @@ struct ResponseConfigUriSegment {
 	ResponseConfigUriSegment(const std::string& s, bool is_last);
 	std::pair<bool, std::string>	is_cgi(const utils::StrVec& cgis) const;
 
-	std::string	s;
-	bool		is_last;
+	std::string	_s;
+	bool		_is_last;
 
 };
 

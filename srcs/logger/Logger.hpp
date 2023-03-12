@@ -16,7 +16,6 @@
 #include <string>
 #include <fstream>
 #include <iostream>
-#include <type_traits>
 #include "colors.hpp"
 
 class Logger{

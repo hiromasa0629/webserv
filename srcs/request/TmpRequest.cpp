@@ -179,7 +179,7 @@ bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
 		return (false);
 	if (vec.back() != "HTTP/1.1")
 		return (false);
-	if (vec[1].front() != '/')
+	if (vec[1][0] != '/')
 		return (false);
 	return (true);
 }
@@ -189,8 +189,8 @@ void	TmpRequest::handle_content_type(const utils::StrVec& val)
 	std::string	type;
 
 	type = val.front();
-	if (type.back() == ';')
-		type.pop_back();
+	if (type[type.length() - 1] == ';')
+		type.erase(type.end() - 1);
 	this->_header_info.insert(std::make_pair(CONTENT_TYPE, type));
 	if (type == "mutlipart/form-data")
 	{
@@ -246,12 +246,12 @@ void	TmpRequest::handle_post(const std::string& req)
 
 			chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 			this->_chunked_outfile = new std::ofstream();
-			this->_chunked_filename = utils::itoa(std::time(nullptr)) + ".chunked";
-			this->_chunked_outfile->open(this->_chunked_filename, std::ios::app | std::ios::out | std::ios::binary);
+			this->_chunked_filename = utils::itoa(std::time(NULL)) + ".chunked";
+			this->_chunked_outfile->open(this->_chunked_filename.c_str(), std::ios::app | std::ios::out | std::ios::binary);
 			if (!this->_chunked_outfile->good())
 				throw ServerErrorException(__LINE__, __FILE__, E500, "Chunked body outfile error");
 			this->_chunked_infile = new std::ifstream();
-			this->_chunked_infile->open(this->_chunked_filename, std::ios::binary);
+			this->_chunked_infile->open(this->_chunked_filename.c_str(), std::ios::binary);
 			if (!this->_chunked_infile->good())
 				throw ServerErrorException(__LINE__, __FILE__, E500, "Chunked body infile error");
 			this->_chunked_outfile->write(chunked_body.c_str(), chunked_body.size());
@@ -269,7 +269,7 @@ void	TmpRequest::handle_post(const std::string& req)
 		if (this->_chunked_debug_size >= (CHUNKED_DEBUG * this->_debugged_index))
 		{
 			this->_debugged_index++;
-			this->_logger.debug("Received " + std::to_string(this->_chunked_debug_size));
+			this->_logger.debug("Received " + utils::itoa(this->_chunked_debug_size));
 		}
 #endif
 		std::string	end_of_chunk;
@@ -294,7 +294,7 @@ void	TmpRequest::handle_post(const std::string& req)
 	{
 		size_t	content_length;
 
-		content_length = std::stoi(this->_header_info[CONTENT_LENGTH]);
+		content_length = std::atoi(this->_header_info[CONTENT_LENGTH].c_str());
 		if (this->_body.empty())
 		{
 			std::string body;
@@ -329,7 +329,7 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 		std::ifstream	infile;
 		size_t			size;
 
-		infile.open(this->_chunked_filename, std::ios::binary);
+		infile.open(this->_chunked_filename.c_str(), std::ios::binary);
 		if (!infile.good())
 			throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked infile failed");
 		infile.seekg(0, infile.end);
@@ -345,7 +345,7 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 		size_t			debug_size = 0;
 
 		unchunked_filename = this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked";
-		outfile.open(unchunked_filename, std::ios::out | std::ios::binary);
+		outfile.open(unchunked_filename.c_str(), std::ios::out | std::ios::binary);
 		if (!outfile.good())
 			throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked outfile failed");
 		for (size_t i = 0; i < body.size();)

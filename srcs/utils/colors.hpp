@@ -63,7 +63,7 @@
 # define BG_LCYAN    "\033[106m"
 # define BG_WHITE    "\033[107m"
 
-# define INFO(func)	BOLD""BLUE"[INFO] "CYAN""func" "RESET
-# define ERROR(func) BOLD""RED"[ERROR] "LRED""func" "RESET
+# define INFO(func)	BOLD "" BLUE "[INFO]" CYAN "" func "" RESET
+# define ERROR(func) BOLD "" RED "[ERROR]" LRED "" func "" RESET
 
 #endif
