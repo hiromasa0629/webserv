@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/10 17:41:03 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 14:16:14 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,7 +53,7 @@ void	ResponseHeader::construct(void)
 void	ResponseHeader::construct(const std::string& header)
 {
 	std::string	h;
-	
+
 	h = header;
 	if (h.find("Status:") != std::string::npos)
 	{
@@ -61,6 +61,13 @@ void	ResponseHeader::construct(const std::string& header)
 		h = "HTTP/1.1" + h;
 	}
 	this->_response_header = h;
+	if (this->_content_length != 0)
+	{
+		std::stringstream	ss;
+
+		ss << "Content-Length: " << this->_content_length << "\r\n";
+		this->_response_header.insert(this->_response_header.length() - 2, ss.str());
+	}
 }
 
 std::string	ResponseHeader::get_response_header(void) const

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/11 19:30:00 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 14:16:38 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,9 +19,9 @@ TmpResponse::~TmpResponse(void) {}
 TmpResponse::TmpResponse(enum StatusCode status, const ServerConfig& sconfig)
 	: _is_complete_response(true)
 {
-	
+
 	this->handle_error(status, sconfig);
-	
+
 	this->_header.set_status(status);
 	this->_header.set_content_length(this->_body.size());
 	this->_header.construct();
@@ -153,7 +153,7 @@ void	TmpResponse::handle_put(const std::string& path)
 		std::ifstream	infile;
 		std::string		buf;
 		size_t			size;
-		
+
 		infile.open(this->_req.get_unchunked_filename(), std::ios::binary);
 		if (!infile.good())
 		{
@@ -181,8 +181,10 @@ void	TmpResponse::handle_put(const std::string& path)
 
 void	TmpResponse::handle_cgi(const std::string& cgi_msg)
 {
-	this->_header.construct(cgi_msg.substr(0, cgi_msg.find("\r\n\r\n") + 4));
 	this->_body = cgi_msg.substr(cgi_msg.find("\r\n\r\n") + 4);
+	this->_header.set_content_length(this->_body.size());
+	this->_header.construct(cgi_msg.substr(0, cgi_msg.find("\r\n\r\n") + 4));
+	std::cerr << "this->_body.size(): " << this->_body.size() << std::endl;
 }
 
 void	TmpResponse::handle_autoindex(const std::string& body)
@@ -231,7 +233,7 @@ static	std::string	default_error_page(void)
 {
 	std::stringstream	ss;
 	std::string			s;
-	
+
 	ss << "<!DOCTYPE html>";
 	ss << "<html>";
 	ss << "<h1>Error</h1>";
@@ -248,16 +250,16 @@ void	TmpResponse::handle_error(enum StatusCode status, const ServerConfig& sconf
 	{
 		const utils::StrVec&			val = s_directives.at("error_page");
 		utils::StrVec::const_iterator	it;
-		
+
 		it = std::find(val.begin(), val.end(), utils::itoa(status));
 		if (it != val.end())
 			error_file = *(it + 1);
-	}	
-	
+	}
+
 	if (!error_file.empty())
 	{
 		std::ifstream	infile;
-		
+
 		infile.open(error_file);
 		if (!infile.good())
 		{

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/11 19:53:02 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 15:21:28 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,7 +102,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 	bool							is_redirect		= false;
 	bool							is_autoindex	= false;
 	ServerConfig::StrToLConfigMap	l_config;
-	
+
 
 	this->_directives = sconfig.get_directives();
 	l_config = sconfig.get_lconfig();
@@ -122,7 +122,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 		}
 		else
 			this->_path.append(segmented_uri[i].s);
-		
+
 		if (i == 0)
 			this->handle_error();
 
@@ -148,43 +148,13 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 					if (path_info.empty())
 						path_info = this->_req.get_request_field(URI);
 					this->_cgi.first = true;
-					// std::cout << "cgi_path: " << cgi_path << std::endl;
-					if (this->_req.get_request_field(TRANSFER_ENCODING) == "chunked")
-					{
-						std::ifstream	infile;
-						std::string		buf;
-						size_t			size;
-						
-						infile.open(this->_req.get_unchunked_filename(), std::ios::binary);
-						if (!infile.good())
-							throw ServerErrorException(__LINE__, __FILE__, E500, "Invalid unchunked file");
-						infile.seekg(0, infile.end);
-						size = infile.tellg();
-						infile.seekg(0, infile.beg);
-						buf.resize(size, '\0');
-						infile.read(const_cast<char*>(buf.data()), size);
-						infile.close();
-						if (std::remove(this->_req.get_unchunked_filename().c_str()) != 0)
-							this->_logger.warn(this->_req.get_unchunked_filename() + " unchunked file remove failed");
-						this->_cgi.second = ResponseCgi(cgi_path, buf, cgi_pair.second, this->_envp);
-						this->_cgi.second.set_envp("CONTENT_LENGTH", utils::itoa(buf.size()));
-					}
-					else
-					{
-						this->_cgi.second = ResponseCgi(cgi_path, this->_req.get_body(), cgi_pair.second, this->_envp);
-						this->_cgi.second.set_envp("CONTENT_LENGTH", utils::itoa(this->_req.get_body().size()));
-					}
-					this->_cgi.second.set_envp("REQUEST_METHOD", this->_req.get_request_field(METHOD));
-					this->_cgi.second.set_envp("SERVER_PROTOCOL", this->_req.get_request_field(PROTOCOL));
+					this->_cgi.second = ResponseCgi(cgi_path, this->_req, cgi_pair.second, this->_envp);
 					this->_cgi.second.set_envp("PATH_INFO", path_info);
-					this->_cgi.second.set_envp("QUERY_STRING", this->_req.get_request_field(QUERY));
-					this->_cgi.second.set_envp("SERVER_NAME", this->_req.get_request_field(SERVER_NAME));
-					this->_cgi.second.set_envp("SERVER_PORT", this->_req.get_request_field(PORT));
 #if DEBUG
 					this->_logger.debug("Executing " + cgi_path);
 #endif
 					this->_cgi.second.execute();
-					
+
 					return ;
 				}
 			}
@@ -252,6 +222,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 
 				if (!infile.good())
 					throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
+				infile.close();
 			}
 			else
 			{
@@ -265,6 +236,7 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 						throw ServerErrorException(__LINE__, __FILE__, E404, this->_path + " Not found");
 					this->_path.append(".html");
 				}
+				infile.close();
 			}
 		}
 	}
@@ -300,6 +272,20 @@ void	ResponseConfig::handle_error(void) const
 		client_max_body_size = std::stoi(this->_directives.at("client_max_body_size")[0]);
 		if (client_max_body_size < this->_req.get_body().size())
 			throw ServerErrorException(__LINE__, __FILE__, E413, "Body size too large");
+		if (!this->_req.get_unchunked_filename().empty())
+		{
+			std::ifstream	infile;
+			size_t			size;
+
+			infile.open(this->_req.get_unchunked_filename(), std::ios::binary);
+			if (!infile.good())
+				throw ServerErrorException(__LINE__, __FILE__, E500, "Handle error infile failed");
+			infile.seekg(0, infile.end);
+			size = infile.tellg();
+			infile.close();
+			if (client_max_body_size < size)
+				throw ServerErrorException(__LINE__, __FILE__, E413, "Body size too large");
+		}
 	}
 }
 
@@ -316,7 +302,7 @@ std::pair<bool, std::string>	ResponseConfigUriSegment::is_cgi(const utils::StrVe
 	{
 		std::string	ext = cgis[i++];
 		std::string cmd = cgis[i];
-		
+
 		if (s.length() < ext.length())
 			continue ;
 		if (s.substr(s.length() - ext.length()) == ext)

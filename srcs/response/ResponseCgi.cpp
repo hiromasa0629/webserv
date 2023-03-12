@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/10 17:34:50 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 15:12:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,10 +16,26 @@ ResponseCgi::ResponseCgi(void) {}
 
 ResponseCgi::~ResponseCgi(void) {}
 
-ResponseCgi::ResponseCgi(const std::string& path, const std::string& body, const std::string& cmd, char** envp)
-	: _path(path), _envp(envp), _body(body), _cmd(cmd)
-{
+// ResponseCgi::ResponseCgi(const std::string& path, const std::string& body, const std::string& cmd, char** envp)
+// 	: _path(path), _envp(envp), _body(body), _cmd(cmd)
+// {
 
+// }
+
+ResponseCgi::ResponseCgi(const std::string& path, const TmpRequest& req, const std::string& cmd, char** envp)
+	: _path(path), _req(req), _envp(envp), _cmd(cmd)
+{
+	this->set_envp("QUERY_STRING", this->_req.get_request_field(QUERY));
+	this->set_envp("SERVER_NAME", this->_req.get_request_field(SERVER_NAME));
+	this->set_envp("SERVER_PORT", this->_req.get_request_field(PORT));
+	this->set_envp("REQUEST_METHOD", this->_req.get_request_field(METHOD));
+	this->set_envp("SERVER_PROTOCOL", this->_req.get_request_field(PROTOCOL));
+	this->set_envp("HTTP_X_SECRET_HEADER_FOR_TEST", this->_req.get_request_field(X_SECRET));
+	if (this->_req.get_request_field(TRANSFER_ENCODING) != "chunked")
+	{
+		this->set_envp("CONTENT_LENGTH", utils::itoa(this->_req.get_body().size()));
+		this->_body = this->_req.get_body();
+	}
 }
 
 void	ResponseCgi::set_envp(const std::string& key, const std::string& value)
@@ -54,30 +70,44 @@ void	ResponseCgi::execute(void)
 		close(pipe_to_child[0]);
 		close(pipe_to_parent[1]);
 
-		write(pipe_to_child[1], this->_body.c_str(), this->_body.size());
+		if (!this->_body.empty())
+			write(pipe_to_child[1], this->_body.c_str(), this->_body.size());
 		close(pipe_to_child[1]);
 
-		char		buf[READ_BUFFER];
+		char		buf[READ_BUFFER + 1];
 		ssize_t		ret;
-		std::memset(buf, 0, READ_BUFFER);
+		std::memset(buf, 0, READ_BUFFER + 1);
 		while ((ret = read(pipe_to_parent[0], buf, READ_BUFFER)) > 0)
 		{
 			this->_response_msg.append(buf);
-			std::memset(buf, 0, READ_BUFFER);
+			std::memset(buf, 0, READ_BUFFER + 1);
 		}
-		
-		// std::cerr << this->_response_msg << std::endl;
-		
+
+		// std::ofstream	outfile;
+
+		// outfile.open("cgireturn", std::ios::out);
+		// outfile.write(this->_response_msg.c_str(), this->_response_msg.size());
+		// outfile.close();
+
 		int status;
 		if (waitpid(pid, &status, 0) == -1)
 			throw ServerErrorException(__LINE__, __FILE__, E500, "waitpid() failed");
+
+		if (this->_req.get_request_field(TRANSFER_ENCODING) == "chunked")
+		{
+#if DEBUG
+			this->_logger.debug("Removing " + this->_req.get_unchunked_filename());
+#endif
+			if (std::remove(this->_req.get_unchunked_filename().c_str()) != 0)
+				this->_logger.warn("Unchunked file failed to remove");
+		}
 	}
 }
 
 static	std::vector<char*>	construct_envp(char** envp, utils::StrVec add_envp)
 {
 	std::vector<char*>								sv;
-	
+
 	for (size_t i = 0; envp[i] != NULL; i++)
 	{
 		char*	s = new char [std::strlen(envp[i]) + 1];
@@ -106,18 +136,27 @@ void	ResponseCgi::child_process(int* pipe_to_child, int* pipe_to_parent)
 	for (size_t i = 0; i < tmp.size(); i++)
 		argv.push_back(const_cast<char*>(tmp[i].c_str()));
 	argv.push_back(NULL);
-	
+
 	envp = construct_envp(this->_envp, this->_add_envp);
-	// for (size_t i = 0; i < envp.size(); i++)
-	// {
-	// 	if (envp[i] == NULL)
-	// 		break ;
-	// 	std::cerr << envp[i] << std::endl;
-	// }
 
 	close(pipe_to_child[1]);
 	close(pipe_to_parent[0]);
-	dup2(pipe_to_child[0], STDIN_FILENO);
+
+	if (this->_req.get_request_field(TRANSFER_ENCODING) != "chunked")
+		dup2(pipe_to_child[0], STDIN_FILENO);
+	else
+	{
+		int	fd;
+		close(pipe_to_child[0]);
+
+		fd = open(this->_req.get_unchunked_filename().c_str(), O_RDONLY);
+		if(fd == -1){
+			std::perror("open fd failed");
+			std::exit(EXIT_FAILURE);
+		}
+		dup2(fd, STDIN_FILENO);
+		close(fd);
+	}
 	dup2(pipe_to_parent[1], STDOUT_FILENO);
 
 	execve(this->_cmd.c_str(), argv.data(), envp.data());

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 14:45:23 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 14:38:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,7 +31,8 @@ enum RequestFields {
 	CONTENT_LENGTH,
 	CONTENT_TYPE,
 	TRANSFER_ENCODING,
-	BOUNDARY
+	BOUNDARY,
+	X_SECRET
 };
 
 enum StatusCode {

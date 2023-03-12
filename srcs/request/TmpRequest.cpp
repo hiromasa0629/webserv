@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/11 20:13:17 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 15:37:21 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,9 @@
 
 const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE", "HEAD", "PUT"};
 
-const char*	TmpRequest::_fields_string[] = {"method", "uri", "query", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary"};
+const char*	TmpRequest::_fields_string[] = {"method", "uri", "query", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary", "X-Secret-Header"};
 
-TmpRequest::TmpRequest(void) 
+TmpRequest::TmpRequest(void)
 	: _is_complete(false), _is_complete_header(false), _req(""), _status_code(S200), _logger(), _chunked_debug_size(0), _debugged_index(0) {}
 
 TmpRequest::~TmpRequest(void) {}
@@ -76,7 +76,7 @@ void	TmpRequest::print_request_header(void) const
 	// 	throw std::runtime_error("Request is not completely read yet");
 #if DEBUG
 	std::map<enum RequestFields, std::string>::const_iterator	it;
-	
+
 	it = this->_header_info.begin();
 	for (; it != this->_header_info.end(); it++)
 		this->_logger.debug(_fields_string[it->first] + std::string(": ") + it->second);
@@ -84,7 +84,7 @@ void	TmpRequest::print_request_header(void) const
 	{
 		this->_logger.debug(" --------------------- ");
 		std::map<std::string, std::string>::const_iterator	it2;
-		
+
 		it2 = this->_query.begin();
 		for (; it2 != this->_query.end(); it2++)
 			this->_logger.debug(it2->first + std::string(": ") + it2->second);
@@ -114,10 +114,12 @@ void	TmpRequest::extract_header_info(void)
 	std::string		header;
 	utils::StrVec	header_lines;
 	utils::StrVec	split;
-	
-	
-	index = this->_req.find("\r\n\r\n");
-	header = std::string(this->_req.begin(), this->_req.begin() + index);
+
+
+	header = this->_req.substr(0, this->_req.find("\r\n\r\n"));
+#if DEBUG
+	// std::cout << header << std::endl;
+#endif
 	while ((index = header.find("\r\n")) != std::string::npos)
 	{
 		header_lines.push_back(header.substr(0, index));
@@ -151,15 +153,17 @@ void	TmpRequest::extract_header_info(void)
 			this->_header_info.insert(std::make_pair(TRANSFER_ENCODING, split.back()));
 		else if (split.front() == "Content-Length:")
 			this->_header_info.insert(std::make_pair(CONTENT_LENGTH, split.back()));
+		else if (split.front() == "X-Secret-Header-For-Test:")
+			this->_header_info.insert(std::make_pair(X_SECRET, split.back()));
 	}
 	if (this->_header_info.count(SERVER_NAME) == 0)
 		throw ServerErrorException(__LINE__, __FILE__, E400, "Missing request host");
-}	
+}
 
 bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
 {
 	int	i;
-	
+
 	if (vec.empty())
 		return (false);
 	if (vec.size() != 3)
@@ -183,7 +187,7 @@ bool	TmpRequest::check_request_line(const utils::StrVec& vec) const
 void	TmpRequest::handle_content_type(const utils::StrVec& val)
 {
 	std::string	type;
-	
+
 	type = val.front();
 	if (type.back() == ';')
 		type.pop_back();
@@ -200,13 +204,13 @@ void	TmpRequest::handle_content_type(const utils::StrVec& val)
 void	TmpRequest::handle_get(void)
 {
 	std::string	uri;
-	
+
 	uri = this->_header_info[URI];
 	if (uri.find_first_of('?') != std::string::npos)
 	{
 		std::string	query;
 		size_t		index;
-		
+
 		query = uri.substr(uri.find_first_of('?') + 1);
 		if (query.length() > 0)
 		{
@@ -233,11 +237,11 @@ void	TmpRequest::handle_post(const std::string& req)
 {
 	if (this->_header_info.count(TRANSFER_ENCODING) > 0 && this->_header_info[TRANSFER_ENCODING] == "chunked")
 	{
-		
+
 		if (this->_chunked_filename.empty())
 		{
 			this->_logger.debug("Receving chunked request...");
-			
+
 			std::string	chunked_body;
 
 			chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
@@ -258,8 +262,8 @@ void	TmpRequest::handle_post(const std::string& req)
 			this->_chunked_outfile->write(req.c_str(), req.size());
 			this->_chunked_outfile->flush();
 		}
-		
-		
+
+
 #if DEBUG
 		this->_chunked_debug_size += req.size();
 		if (this->_chunked_debug_size >= (CHUNKED_DEBUG * this->_debugged_index))
@@ -267,9 +271,9 @@ void	TmpRequest::handle_post(const std::string& req)
 			this->_debugged_index++;
 			this->_logger.debug("Received " + std::to_string(this->_chunked_debug_size));
 		}
-#endif	
+#endif
 		std::string	end_of_chunk;
-		
+
 		this->_chunked_infile->clear();
 		this->_chunked_infile->seekg(-5, std::ios::end);
 		char	buf[6];
@@ -289,12 +293,12 @@ void	TmpRequest::handle_post(const std::string& req)
 	else if (this->_header_info.count(CONTENT_LENGTH) > 0)
 	{
 		size_t	content_length;
-		
+
 		content_length = std::stoi(this->_header_info[CONTENT_LENGTH]);
 		if (this->_body.empty())
 		{
 			std::string body;
-			
+
 			body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 			if (body.size() > content_length)
 				this->_body.append(body.c_str(), content_length);
@@ -304,7 +308,7 @@ void	TmpRequest::handle_post(const std::string& req)
 		else
 		{
 			size_t	remaining;
-			
+
 			remaining = content_length - this->_body.size();
 			if (req.size() > remaining)
 				this->_body.append(req, remaining);
@@ -320,11 +324,11 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 {
 	std::string		unchunked_filename;
 	std::string		body;
-		
+
 	{
 		std::ifstream	infile;
 		size_t			size;
-		
+
 		infile.open(this->_chunked_filename, std::ios::binary);
 		if (!infile.good())
 			throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked infile failed");
@@ -337,9 +341,7 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 	}
 
 	{
-		size_t			index;
 		std::ofstream	outfile;
-		size_t			size;
 		size_t			debug_size = 0;
 
 		unchunked_filename = this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked";
@@ -349,24 +351,23 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 		for (size_t i = 0; i < body.size();)
 		{
 			size_t 	j;
-			size_t	k;
 			size_t	size;
-			
+
 			j = i;
 			while (body[j] != '\r' && body[j + 1] != '\n')
 				j++;
 			size = utils::to_int(body.substr(i, j - i));
+			debug_size += size;
 			j += 2;
-			k = j;
-			while (body[k] != '\r' && body[k + 1] != '\n')
-				k++;
-			outfile.write(&body[j], k - j);
-			i = k + 2;
+			outfile.write(&body[j], size);
+			while (body[j] != '\r' && body[j+ 1] != '\n')
+				j++;
+			i = j + 2;
 		}
 		// while ((index = body.find("\r\n")) != std::string::npos)
 		// {
 		// 	std::string	tmp;
-			
+
 		// 	size = utils::to_int(body.substr(0, index));
 		// 	debug_size += size;
 		// 	body = body.substr(index + 2);
@@ -379,9 +380,10 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 		outfile.close();
 		#if DEBUG
 			this->_logger.debug("Received size " + utils::itoa(debug_size) + " from chunked request");
+			this->_logger.debug("Wrote to " + this->_unchunked_filename);
 		#endif
 	}
-	
+
 	if (std::remove(this->_chunked_filename.c_str()) != 0)
 		this->_logger.warn(this->_chunked_filename + " Chunked file remove failed");
 

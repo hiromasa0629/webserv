@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/11 18:09:44 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 15:38:16 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,7 @@ Server::Server(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, co
 
 	this->_timeval.tv_sec = TIMEOUT_SEC;
 	this->_timeval.tv_usec = TIMEOUT_USEC;
-	
+
 	this->_envp = envp;
 
 	it = config.get_sconfig().begin();
@@ -314,10 +314,10 @@ void	Server::handle_pollout_select(int fd)
 		}
 		else
 			res.append(this->_fd_response[fd].get_body());
-		
+
 		// utils::print_msg_with_crlf(res);
 		size_t	b_sent;
-		
+
 		b_sent = send(fd, res.c_str(), res.size(), 0);
 		if (b_sent != res.size())
 			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "send error"));
@@ -330,9 +330,9 @@ void	Server::handle_pollout_select(int fd)
 		this->_logger.warn(e.what());
 		this->_fd_response[fd] = TmpResponse(e.get_status(), this->_fd_sconfig[fd]);
 		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
-		
+
 		size_t	b_sent;
-		
+
 		b_sent = send(fd, res.c_str(), res.size(), 0);
 		if (b_sent != res.size())
 		{
@@ -349,9 +349,9 @@ void	Server::handle_pollout_select(int fd)
 		this->_logger.warn(e.what());
 		this->_fd_response[fd] = TmpResponse(E500, this->_fd_sconfig[fd]);
 		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
-		
+
 		size_t	b_sent;
-		
+
 		b_sent = send(fd, res.c_str(), res.size(), 0);
 		if (b_sent != res.size())
 		{
