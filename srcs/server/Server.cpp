@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 16:38:15 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/12 22:38:38 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -318,7 +318,6 @@ void	Server::handle_pollout_select(int fd)
 		else
 			res.append(this->_fd_response[fd].get_body());
 
-		// utils::print_msg_with_crlf(res);
 		size_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
@@ -347,7 +346,6 @@ void	Server::handle_pollout_select(int fd)
 				this->_maxfd--;
 			this->_fd_requests.erase(fd);
 			this->_fd_response.erase(fd);
-			close(fd);
 		}
 		if (close(fd) != 0)
 			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
@@ -368,7 +366,6 @@ void	Server::handle_pollout_select(int fd)
 				this->_maxfd--;
 			this->_fd_requests.erase(fd);
 			this->_fd_response.erase(fd);
-			close(fd);
 		}
 		if (close(fd) != 0)
 			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
