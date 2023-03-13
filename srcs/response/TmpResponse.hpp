@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:19:56 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/11 18:11:51 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 12:46:45 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,18 +29,18 @@ class TmpResponse {
 		~TmpResponse(void);
 		/**
 		 * @brief Construct a new Tmp Response object. If any error occurs, throw ServerErrorException
-		 * 
+		 *
 		 * @param request TmpRequest class
 		 * @param sconfig ServerConfig class
 		 * @param envp environment variables
 		 */
 		TmpResponse(const TmpRequest& request, const ServerConfig& sconfig, char** envp);
-		
+
 		/**
 		 * @brief Construct a new Tmp Response object
-		 * 
-		 * @param status 
-		 * @param sconfig 
+		 *
+		 * @param status
+		 * @param sconfig
 		 */
 		TmpResponse(enum StatusCode status, const ServerConfig& sconfig);
 
@@ -56,7 +56,7 @@ class TmpResponse {
 		void		handle_delete(const std::string& path);
 		void		handle_normal(const std::string& path);
 		void		handle_error(enum StatusCode status, const ServerConfig& sconfig);
-		
+
 		TmpRequest			_req;
 		bool				_is_complete_response;
 
@@ -64,6 +64,7 @@ class TmpResponse {
 		ResponseHeader		_header;
 
 		std::string			_body;
+		// int					_total_rbuf_sent;
 
 		Logger				_logger;
 };

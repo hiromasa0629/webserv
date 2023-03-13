@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:55:57 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 15:49:48 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 01:10:45 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -208,13 +208,14 @@ void	ResponseConfig::configure(const ServerConfig& sconfig)
 		{
 			DIR*	dir;
 
+			dir = NULL;
 			if ((dir = opendir(this->_path.c_str())) != NULL && is_autoindex)
 			{
 				this->_autoindex.first = true;
 				this->_autoindex.second = ResponseAutoindex(this->_path, this->_req.get_request_field(URI), this->_req.get_request_field(SERVER_NAME), this->_req.get_request_field(PORT));
 				closedir(dir);
 			}
-			else if ((dir = opendir(this->_path.c_str())) != NULL)
+			else if (dir != NULL)
 			{
 				if (this->_directives.count("index") == 0)
 				{

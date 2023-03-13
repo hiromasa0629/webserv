@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 16:38:15 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 11:31:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -244,7 +244,7 @@ void	Server::accept_connection_select(int fd)
 	it = this->_sockets.begin();
 	for (; it != this->_sockets.end(); it++)
 		if (it->get_socketfd() == fd)
-			this->_fd_sconfig.insert(std::make_pair(newfd, it->get_sconfig()));
+			this->_fd_sconfig[newfd] = it->get_sconfig();
 }
 
 void	Server::handle_pollin_select(int fd)
@@ -282,9 +282,11 @@ void	Server::handle_pollin_select(int fd)
 			FD_CLR(fd, &this->_fd_sets.first);
 			if (fd == this->_maxfd)
 				this->_maxfd--;
+			this->_fd_sconfig.erase(fd);
 			this->_fd_requests.erase(fd);
 			if (close(fd) != 0)
 				throw std::runtime_error(utils::itoa(__LINE__) + " close error");
+			this->_logger.debug("Connection closed. fd: " + utils::itoa(fd));
 			return ;
 		}
 		else
@@ -307,6 +309,7 @@ void	Server::handle_pollout_select(int fd)
 #endif
 
 	std::string		res;
+	enum StatusCode	status;
 
 	try
 	{
@@ -318,18 +321,13 @@ void	Server::handle_pollout_select(int fd)
 		else
 			res.append(this->_fd_response[fd].get_body());
 
-		// utils::print_msg_with_crlf(res);
 		size_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
+		// utils::print_msg_with_crlf(res);
 		if (b_sent != res.size())
 			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "send error"));
-		if (this->_fd_response[fd].get_is_complete_response())
-		{
-			if (close(fd) != 0)
-				throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
-			this->_logger.debug("Connection closed. fd: " + utils::itoa(fd));
-		}
+		status = S200;
 	}
 	catch (const ServerErrorException& e)
 	{
@@ -340,17 +338,8 @@ void	Server::handle_pollout_select(int fd)
 		size_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
-		if (b_sent != res.size())
-		{
-			FD_CLR(fd, &this->_fd_sets.second);
-			if (fd == this->_maxfd)
-				this->_maxfd--;
-			this->_fd_requests.erase(fd);
-			this->_fd_response.erase(fd);
-			close(fd);
-		}
-		if (close(fd) != 0)
-			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
+		(void)b_sent;
+		status = e.get_status();
 	}
 	catch (const std::exception& e)
 	{
@@ -361,26 +350,30 @@ void	Server::handle_pollout_select(int fd)
 		size_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
-		if (b_sent != res.size())
-		{
-			FD_CLR(fd, &this->_fd_sets.second);
-			if (fd == this->_maxfd)
-				this->_maxfd--;
-			this->_fd_requests.erase(fd);
-			this->_fd_response.erase(fd);
-			close(fd);
-		}
-		if (close(fd) != 0)
-			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
+		(void)b_sent;
+		status = E500;
 	}
 
-	if (this->_fd_response[fd].get_is_complete_response())
+	if (this->_fd_response[fd].get_is_complete_response() && status == S200 &&\
+		(this->_fd_requests[fd].get_request_field(CONNECTION) == "keep-alive" || this->_fd_requests[fd].get_request_field(CONNECTION).empty()))
 	{
+		this->_logger.debug("Connection keep-alive. fd: " + utils::itoa(fd));
+		FD_CLR(fd, &this->_fd_sets.second);
+		FD_SET(fd, &this->_fd_sets.first);
+		this->_fd_requests.erase(fd);
+		this->_fd_response.erase(fd);
+	}
+	else if (this->_fd_requests[fd].get_is_complete() && (this->_fd_requests[fd].get_request_field(CONNECTION) == "close" || status != S200))
+	{
+		this->_logger.debug("Connection closed. fd: " + utils::itoa(fd));
 		FD_CLR(fd, &this->_fd_sets.second);
 		if (fd == this->_maxfd)
 			this->_maxfd--;
+		if (close(fd) != 0)
+			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
 		this->_fd_requests.erase(fd);
 		this->_fd_response.erase(fd);
+		this->_fd_sconfig.erase(fd);
 	}
 }
 
@@ -403,12 +396,8 @@ void	Server::main_loop_select(void)
 	}
 	while (1)
 	{
-		// this->_logger.listening();
-		// this->_logger.debug("selecting...");
 		read_fds = this->_fd_sets.first;
 		write_fds = this->_fd_sets.second;
-		//FD_COPY(&this->_fd_sets.first, &read_fds);
-		//FD_COPY(&this->_fd_sets.second, &write_fds);
 		select_ready = select(this->_maxfd + 1, &read_fds, &write_fds, NULL, &this->_timeval);
 		if (select_ready < 0)
 			throw std::runtime_error("Server::main_loop_selection() select");

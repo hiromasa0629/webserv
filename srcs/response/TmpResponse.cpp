@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 16:14:20 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 12:46:54 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ TmpResponse::TmpResponse(enum StatusCode status, const ServerConfig& sconfig)
 }
 
 TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, char** envp)
-	: _req(req), _is_complete_response(true), _response_config(this->_req, sconfig, envp)
+	: _req(req), _is_complete_response(true), _response_config(this->_req, sconfig, envp) //, _total_rbuf_sent(0)
 {
 	if (this->_req.get_status_code() != S200)
 		throw ServerErrorException(__LINE__, __FILE__, E400, "Bad request");
@@ -74,10 +74,13 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 #endif
 		this->_is_complete_response = false;
 
-		this->_header.set_is_chunked(true);
-		this->_header.set_content_length(0);
-		this->_header.set_status(S200);
-		this->_header.construct();
+		if (!this->_response_config.get_cgi().first)
+		{
+			this->_header.set_is_chunked(true);
+			this->_header.set_status(S200);
+			this->_header.set_content_length(0);
+			this->_header.construct();
+		}
 	}
 }
 
@@ -115,6 +118,7 @@ std::string	TmpResponse::get_body(void)
 
 std::string	TmpResponse::get_header(void) const
 {
+	utils::print_msg_with_crlf(this->_header.get_response_header());
 	return (this->_header.get_response_header());
 }
 
@@ -182,9 +186,11 @@ void	TmpResponse::handle_put(const std::string& path)
 void	TmpResponse::handle_cgi(const std::string& cgi_msg)
 {
 	this->_body = cgi_msg.substr(cgi_msg.find("\r\n\r\n") + 4);
+	std::cout << "cgi bodysize: " << this->_body.size() << std::endl;
 	this->_header.set_content_length(this->_body.size());
+	if (this->_body.size() > RESPONSE_BUFFER)
+		this->_header.set_is_chunked(true);
 	this->_header.construct(cgi_msg.substr(0, cgi_msg.find("\r\n\r\n") + 4));
-	std::cerr << "this->_body.size(): " << this->_body.size() << std::endl;
 }
 
 void	TmpResponse::handle_autoindex(const std::string& body)

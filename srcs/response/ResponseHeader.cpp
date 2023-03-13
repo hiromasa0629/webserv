@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 14:16:14 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 12:53:41 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,8 +40,9 @@ void	ResponseHeader::construct(void)
 	// ss << "Connection: keep-alive" << "\r\n";
 	// ss << "Content-Type: " << (this->_content_type.empty() ? "text/html" : this->_content_type /*+ "; charset=us-ascii"*/) << "\r\n";
 	ss << "Content-Type: */*" << "\r\n";
-	if (this->_content_length != 0)
-		ss << "Content-Length: " << this->_content_length << "\r\n";
+	// ss << "Connection: close" << "\r\n";
+	// if (this->_content_length != 0)
+	ss << "Content-Length: " << this->_content_length << "\r\n";
 	if (!this->_location.empty())
 		ss << "Location: " << this->_location << "\r\n";
 	if (this->_is_chunked)
@@ -60,14 +61,22 @@ void	ResponseHeader::construct(const std::string& header)
 		h.erase(h.begin(), h.begin() + 7);
 		h = "HTTP/1.1" + h;
 	}
-	this->_response_header = h;
-	if (this->_content_length != 0)
-	{
-		std::stringstream	ss;
 
+	this->_response_header = h;
+
+	std::stringstream	ss;
+	if (!this->_is_chunked)
+	{
 		ss << "Content-Length: " << this->_content_length << "\r\n";
 		this->_response_header.insert(this->_response_header.length() - 2, ss.str());
 	}
+
+
+	ss.clear();
+	ss.str("");
+	if (this->_is_chunked)
+		ss << "Transfer-Encoding: chunked" << "\r\n";
+	this->_response_header.insert(this->_response_header.length() - 2, ss.str());
 }
 
 std::string	ResponseHeader::get_response_header(void) const

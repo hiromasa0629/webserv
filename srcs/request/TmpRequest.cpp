@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 15:37:21 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 12:07:26 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 const char*	TmpRequest::_methods[] = {"GET", "POST", "DELETE", "HEAD", "PUT"};
 
-const char*	TmpRequest::_fields_string[] = {"method", "uri", "query", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary", "X-Secret-Header"};
+const char*	TmpRequest::_fields_string[] = {"method", "uri", "query", "server_name", "port", "protocol", "content-length", "content-type", "transfer-encoding", "boundary", "X-Secret-Header", "Connection"};
 
 TmpRequest::TmpRequest(void)
 	: _is_complete(false), _is_complete_header(false), _req(""), _status_code(S200), _logger(), _chunked_debug_size(0), _debugged_index(0) {}
@@ -101,8 +101,8 @@ void	TmpRequest::print_request_header(void) const
 
 bool	TmpRequest::check_header_complete(void)
 {
-	if (this->_req.length() < 4)
-		throw ServerErrorException(__LINE__, __FILE__, E400, "Invalid request length");
+	// if (this->_req.length() < 4)
+	// 	throw ServerErrorException(__LINE__, __FILE__, E400, "Invalid request length");
 	if (this->_req.find("\r\n\r\n") == std::string::npos)
 		return (false);
 	return (true);
@@ -155,6 +155,8 @@ void	TmpRequest::extract_header_info(void)
 			this->_header_info.insert(std::make_pair(CONTENT_LENGTH, split.back()));
 		else if (split.front() == "X-Secret-Header-For-Test:")
 			this->_header_info.insert(std::make_pair(X_SECRET, split.back()));
+		else if (split.front() == "Connection:")
+			this->_header_info.insert(std::make_pair(CONNECTION, split.back()));
 	}
 	if (this->_header_info.count(SERVER_NAME) == 0)
 		throw ServerErrorException(__LINE__, __FILE__, E400, "Missing request host");
@@ -246,7 +248,23 @@ void	TmpRequest::handle_post(const std::string& req)
 
 			chunked_body = this->_req.substr(this->_req.find("\r\n\r\n") + 4);
 			this->_chunked_outfile = new std::ofstream();
-			this->_chunked_filename = utils::itoa(std::time(NULL)) + ".chunked";
+
+			std::string		filename;
+
+			filename = utils::itoa(std::time(NULL));
+			for (size_t i = 0; i < 100; i++)
+			{
+				std::ifstream	infile;
+
+				infile.open((filename + "_" + utils::itoa(i) + ".chunked").c_str());
+				if (!infile.good())
+				{
+					this->_chunked_filename = filename + "_" + utils::itoa(i) + ".chunked";
+					break ;
+				}
+				infile.close();
+			}
+
 			this->_chunked_outfile->open(this->_chunked_filename.c_str(), std::ios::app | std::ios::out | std::ios::binary);
 			if (!this->_chunked_outfile->good())
 				throw ServerErrorException(__LINE__, __FILE__, E500, "Chunked body outfile error");
@@ -364,23 +382,10 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 				j++;
 			i = j + 2;
 		}
-		// while ((index = body.find("\r\n")) != std::string::npos)
-		// {
-		// 	std::string	tmp;
-
-		// 	size = utils::to_int(body.substr(0, index));
-		// 	debug_size += size;
-		// 	body = body.substr(index + 2);
-		// 	if ((index = body.find("\r\n")) == std::string::npos)
-		// 		break ;
-		// 	tmp = body.substr(0, index);
-		// 	outfile.write(body.data(), size);
-		// 	body = body.substr(index + 2);
-		// }
 		outfile.close();
 		#if DEBUG
 			this->_logger.debug("Received size " + utils::itoa(debug_size) + " from chunked request");
-			this->_logger.debug("Wrote to " + this->_unchunked_filename);
+			this->_logger.debug("Wrote to " + unchunked_filename);
 		#endif
 	}
 
