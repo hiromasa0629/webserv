@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:19:56 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 20:29:48 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 01:10:49 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,7 +54,7 @@ class TmpResponse {
 	private:
 		void		handle_redirection(const std::string& uri);
 		void		handle_put(const std::string& path);
-		void		handle_cgi(const std::string& cgi_msg);
+		void		handle_cgi(const std::string& cgi_filename);
 		void		handle_autoindex(const std::string& body);
 		void		handle_delete(const std::string& path);
 		void		handle_normal(const std::string& path);
@@ -67,6 +67,8 @@ class TmpResponse {
 		ResponseHeader		_header;
 		std::string			_chunked_body;
 		int					_chunked_sent;
+
+		std::pair<std::ifstream*, int>		_response_infile;	// <ifstream, bodysize>
 
 		std::string			_body;
 		// int					_total_rbuf_sent;

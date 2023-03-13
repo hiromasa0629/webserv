@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 21:18:12 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 23:26:33 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -272,7 +272,7 @@ void	TmpRequest::handle_post(const std::string& req)
 			this->_chunked_outfile->write(chunked_body.c_str(), chunked_body.size());
 			this->_chunked_outfile->flush();
 		}
-		else //if (end_of_chunk != "0\r\n\r\n")
+		else
 		{
 			this->_chunked_outfile->write(req.c_str(), req.size());
 			this->_chunked_outfile->flush();
@@ -287,8 +287,6 @@ void	TmpRequest::handle_post(const std::string& req)
 			this->_logger.debug("Received " + utils::itoa(this->_chunked_debug_size));
 		}
 #endif
-		std::string	end_of_chunk;
-
 		this->_chunked_infile->clear();
 		this->_chunked_infile->seekg(-5, std::ios::end);
 		char	buf[6];
@@ -338,67 +336,92 @@ void	TmpRequest::handle_post(const std::string& req)
 std::string	TmpRequest::tidy_up_chunked_body(void)
 {
 	std::string		unchunked_filename;
-	std::string		body;
-	std::string		strsize;
 	std::ifstream	infile;
 	std::ofstream	outfile;
+	std::string		hexsize;
 	char			c;
+	size_t			debug_size = 0;
 
-	// infile.open(this->_chunked_filename.c_str(), std::ios::binary);
-	// outfile.open(this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked");
-	// while (infile.get(c))
+	infile.open(this->_chunked_filename.c_str(), std::ios::binary);
+	if (!infile.good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "tidy_up_chunked_body infile failed");
+	unchunked_filename = this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked";
+	outfile.open(unchunked_filename.c_str(), std::ios::out | std::ios::binary);
+	if (!outfile.good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "tidy_up_chunked_body outfile failed");
+	while (infile.get(c))
+	{
+		hexsize += c;
+		if (hexsize.length() > 1 && hexsize.substr(hexsize.length() - 2) == "\r\n")
+		{
+			size_t			size = utils::to_int(hexsize);
+			std::string		buf;
+			std::string		tmp;
+
+			debug_size += size;
+			buf.reserve(size);
+			infile.read(const_cast<char*>(buf.c_str()), size);
+			outfile.write(buf.c_str(), size);
+			hexsize.clear();
+			while (infile.get(c))
+			{
+				tmp += c;
+				if (tmp.length() > 1 && tmp.substr(tmp.length() - 2) == "\r\n")
+					break ;
+			}
+		}
+	}
+	infile.close();
+	outfile.close();
+#if DEBUG
+	this->_logger.debug("Received size " + utils::itoa(debug_size) + " from chunked request");
+	this->_logger.debug("Wrote to " + unchunked_filename);
+#endif
+
+
+
 	// {
-	// 	strsize += c;
 
+	// 	size_t			size;
+
+	// 	infile.open(this->_chunked_filename.c_str(), std::ios::binary);
+	// 	if (!infile.good())
+	// 		throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked infile failed");
+	// 	infile.seekg(0, infile.end);
+	// 	size = infile.tellg();
+	// 	infile.seekg(0, infile.beg);
+	// 	body.resize(size, '\0');
+	// 	infile.read(const_cast<char*>(body.data()), size);
+	// 	infile.close();
 	// }
 
+	// {
+	// 	std::ofstream	outfile;
 
 
-	{
+	// 	unchunked_filename = this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked";
+	// 	outfile.open(unchunked_filename.c_str(), std::ios::out | std::ios::binary);
+	// 	if (!outfile.good())
+	// 		throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked outfile failed");
+	// 	for (size_t i = 0; i < body.size();)
+	// 	{
+	// 		size_t 	j;
+	// 		size_t	size;
 
-		size_t			size;
+	// 		j = i;
+	// 		while (body[j] != '\r' && body[j + 1] != '\n')
+	// 			j++;
+	// 		size = utils::to_int(body.substr(i, j - i));
+	// 		debug_size += size;
+	// 		j += 2;
+	// 		outfile.write(&body[j], size);
+	// 		while (body[j] != '\r' && body[j+ 1] != '\n')
+	// 			j++;
+	// 		i = j + 2;
+	// 	}
+	// 	outfile.close();
 
-		infile.open(this->_chunked_filename.c_str(), std::ios::binary);
-		if (!infile.good())
-			throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked infile failed");
-		infile.seekg(0, infile.end);
-		size = infile.tellg();
-		infile.seekg(0, infile.beg);
-		body.resize(size, '\0');
-		infile.read(const_cast<char*>(body.data()), size);
-		infile.close();
-	}
-
-	{
-		std::ofstream	outfile;
-		size_t			debug_size = 0;
-
-		unchunked_filename = this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked";
-		outfile.open(unchunked_filename.c_str(), std::ios::out | std::ios::binary);
-		if (!outfile.good())
-			throw ServerErrorException(__LINE__, __FILE__, E500, "Unchunked outfile failed");
-		for (size_t i = 0; i < body.size();)
-		{
-			size_t 	j;
-			size_t	size;
-
-			j = i;
-			while (body[j] != '\r' && body[j + 1] != '\n')
-				j++;
-			size = utils::to_int(body.substr(i, j - i));
-			debug_size += size;
-			j += 2;
-			outfile.write(&body[j], size);
-			while (body[j] != '\r' && body[j+ 1] != '\n')
-				j++;
-			i = j + 2;
-		}
-		outfile.close();
-#if DEBUG
-			this->_logger.debug("Received size " + utils::itoa(debug_size) + " from chunked request");
-			this->_logger.debug("Wrote to " + unchunked_filename);
-#endif
-	}
+	// }
 
 	if (std::remove(this->_chunked_filename.c_str()) != 0)
 		this->_logger.warn(this->_chunked_filename + " Chunked file remove failed");

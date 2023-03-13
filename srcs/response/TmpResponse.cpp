@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 20:26:45 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 01:11:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,7 +55,7 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 	else if (this->_response_config.get_cgi().first)
 	{
 		//	Is CGI
-		this->handle_cgi(this->_response_config.get_cgi().second.get_response_msg());
+		this->handle_cgi(this->_response_config.get_cgi().second.get_cgi_filename());
 	}
 	else if (method == "DELETE")
 	{
@@ -67,7 +67,7 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 		this->handle_normal(this->_response_config.get_path());
 	}
 
-	if (this->_body.size() > RESPONSE_BUFFER)
+	if (this->_body.size() > RESPONSE_BUFFER || this->_cgi_infile.second > RESPONSE_BUFFER)
 	{
 #if DEBUG
 		this->_logger.debug("Sending size " + utils::itoa(this->_body.size()) + " in chunked response...");
@@ -195,13 +195,32 @@ void	TmpResponse::handle_put(const std::string& path)
 	this->_header.construct();
 }
 
-void	TmpResponse::handle_cgi(const std::string& cgi_msg)
+void	TmpResponse::handle_cgi(const std::string& cgi_filename)
 {
-	this->_body = cgi_msg.substr(cgi_msg.find("\r\n\r\n") + 4);
-	this->_header.set_content_length(this->_body.size());
-	if (this->_body.size() > RESPONSE_BUFFER)
+	int				filesize;
+	char			c;
+	std::string		header;
+
+	this->_response_infile.first = new std::ifstream();
+	this->_response_infile.first->open(cgi_filename.c_str(), std::ios::binary);
+	if (!this->_response_infile.first->good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_cgi this->_response_infile.first failed");
+	while (this->_response_infile.first->get(c))
+	{
+		header += c;
+		if (header.length() > 3 && header.substr(header.length() - 4) == "\r\n\r\n")
+			break ;
+	}
+	this->_response_infile.first->seekg(0, this->_response_infile.first->end);
+	filesize = this->_response_infile.first->tellg();
+	filesize -= header.size();
+	this->_response_infile.second = filesize;
+	this->_response_infile.first->seekg(header.size(), this->_response_infile.first->beg);
+
+	this->_header.set_content_length(filesize);
+	if (filesize > RESPONSE_BUFFER)
 		this->_header.set_is_chunked(true);
-	this->_header.construct(cgi_msg.substr(0, cgi_msg.find("\r\n\r\n") + 4));
+	this->_header.construct(header);
 }
 
 void	TmpResponse::handle_autoindex(const std::string& body)

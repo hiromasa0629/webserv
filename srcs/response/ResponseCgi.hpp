@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:19:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 14:19:40 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 00:23:33 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,7 +32,7 @@ class ResponseCgi {
 		void	execute(void);
 		void	child_process(int* pipe_to_child, int* pipe_to_parent);
 
-		const std::string&	get_response_msg(void) const;
+		const std::string&	get_cgi_filename(void) const;
 
 	private:
 
@@ -42,7 +42,8 @@ class ResponseCgi {
 		utils::StrVec						_add_envp;
 		std::string							_body;
 		std::string							_cmd;
-		std::string							_response_msg;
+		// std::string							_response_msg;
+		std::string							_cgi_filename;
 
 		Logger								_logger;
 

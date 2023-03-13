@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 17:30:49 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 00:36:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,12 +77,28 @@ void	ResponseCgi::execute(void)
 		char		buf[READ_BUFFER + 1];
 		ssize_t		ret;
 		std::memset(buf, 0, READ_BUFFER + 1);
+
+		this->_cgi_filename = utils::itoa(std::time(NULL));
+		for (size_t i = 0; i < 100; i++)
+		{
+			struct	stat	st;
+
+			if (stat((this->_cgi_filename + "_" + utils::itoa(i) + ".cgi_res").c_str(), &st) == 0)
+				continue;
+			this->_cgi_filename = this->_cgi_filename + "_" + utils::itoa(i) + ".cgi_res";
+			break ;
+		}
+		std::ofstream	outfile(this->_cgi_filename.c_str(), std::ios::out | std::ios::binary);
+		if (!outfile.good())
+			throw ServerErrorException(__LINE__, __FILE__, E500, "Cgi outfile failed");
 		while ((ret = read(pipe_to_parent[0], buf, READ_BUFFER)) > 0)
 		{
-			this->_response_msg.append(buf);
+			outfile.write(buf, ret);
+			// this->_cgi_filename.append(buf);
 			std::memset(buf, 0, READ_BUFFER + 1);
 		}
 		close(pipe_to_parent[0]);
+		outfile.close();
 
 		// std::ofstream	outfile;
 
@@ -168,7 +184,7 @@ void	ResponseCgi::child_process(int* pipe_to_child, int* pipe_to_parent)
 	std::exit(EXIT_FAILURE);
 }
 
-const std::string&	ResponseCgi::get_response_msg(void) const
+const std::string&	ResponseCgi::get_cgi_filename(void) const
 {
-	return (this->_response_msg);
+	return (this->_cgi_filename);
 }
