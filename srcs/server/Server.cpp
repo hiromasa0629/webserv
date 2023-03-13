@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 11:31:26 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 20:34:04 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -313,20 +313,30 @@ void	Server::handle_pollout_select(int fd)
 
 	try
 	{
+		size_t	header_size = 0;
+
 		if (this->_fd_response.count(fd) == 0)
 		{
 			this->_fd_response.insert(std::make_pair(fd, TmpResponse(this->_fd_requests[fd], this->_fd_sconfig[fd], this->_envp)));
-			res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
+			res.append(this->_fd_response[fd].get_header());
+			header_size = res.size();
+			res.append(this->_fd_response[fd].get_body());
+
 		}
+		else if (this->_fd_response[fd].get_chunked_body().size() > 0)
+			res.append(this->_fd_response[fd].get_chunked_body());
 		else
 			res.append(this->_fd_response[fd].get_body());
 
-		size_t	b_sent;
+		ssize_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
-		// utils::print_msg_with_crlf(res);
-		if (b_sent != res.size())
+		if (b_sent == -1)
 			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "send error"));
+		if (header_size > 0)
+			b_sent -= header_size;
+		if (this->_fd_response[fd].get_chunked_body().size() > 0)
+			this->_fd_response[fd].truncate_chunk_body(b_sent);
 		status = S200;
 	}
 	catch (const ServerErrorException& e)
@@ -335,7 +345,7 @@ void	Server::handle_pollout_select(int fd)
 		this->_fd_response[fd] = TmpResponse(e.get_status(), this->_fd_sconfig[fd]);
 		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
 
-		size_t	b_sent;
+		ssize_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
 		(void)b_sent;
@@ -347,7 +357,7 @@ void	Server::handle_pollout_select(int fd)
 		this->_fd_response[fd] = TmpResponse(E500, this->_fd_sconfig[fd]);
 		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
 
-		size_t	b_sent;
+		ssize_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
 		(void)b_sent;

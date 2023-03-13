@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:19:56 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 12:46:45 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 20:29:48 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@
 # include <iterator>
 # include "Logger.hpp"
 
-# define RESPONSE_BUFFER 65536
+# define RESPONSE_BUFFER 32768
 
 class TmpResponse {
 	public:
@@ -48,6 +48,9 @@ class TmpResponse {
 		std::string	get_header(void) const;
 		bool		get_is_complete_response(void) const;
 
+		const std::string&	get_chunked_body(void) const;
+		void				truncate_chunk_body(int sent);
+
 	private:
 		void		handle_redirection(const std::string& uri);
 		void		handle_put(const std::string& path);
@@ -62,6 +65,8 @@ class TmpResponse {
 
 		ResponseConfig		_response_config;
 		ResponseHeader		_header;
+		std::string			_chunked_body;
+		int					_chunked_sent;
 
 		std::string			_body;
 		// int					_total_rbuf_sent;

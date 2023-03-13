@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 12:46:54 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 20:26:45 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ TmpResponse::TmpResponse(enum StatusCode status, const ServerConfig& sconfig)
 }
 
 TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, char** envp)
-	: _req(req), _is_complete_response(true), _response_config(this->_req, sconfig, envp) //, _total_rbuf_sent(0)
+	: _req(req), _is_complete_response(true), _response_config(this->_req, sconfig, envp), _chunked_sent(0)
 {
 	if (this->_req.get_status_code() != S200)
 		throw ServerErrorException(__LINE__, __FILE__, E400, "Bad request");
@@ -90,35 +90,47 @@ std::string	TmpResponse::get_body(void)
 {
 	if (!this->_is_complete_response)
 	{
-		std::string	chunked_body;
+		const char*		s;
 
-		if  (this->_body.empty())
+		if  ((this->_body.size() - this->_chunked_sent) == 0)
 		{
-			chunked_body.append("0\r\n\r\n");
+			this->_chunked_body.append("0\r\n\r\n");
 			this->_is_complete_response = true;
-			return (chunked_body);
+			return (this->_chunked_body);
 		}
-		if (this->_body.size() > RESPONSE_BUFFER)
+		if ((this->_body.size() - this->_chunked_sent) > RESPONSE_BUFFER)
 		{
-			chunked_body.append(utils::to_hex(RESPONSE_BUFFER)).append("\r\n");
-			chunked_body.append(this->_body.c_str(), RESPONSE_BUFFER).append("\r\n");
-			this->_body = this->_body.substr(RESPONSE_BUFFER);
+			this->_chunked_body.append(utils::to_hex(RESPONSE_BUFFER)).append("\r\n");
+			s = this->_body.c_str() + this->_chunked_sent;
+			this->_chunked_body.append(s, RESPONSE_BUFFER).append("\r\n");
+			this->_chunked_sent += RESPONSE_BUFFER;
 		}
 		else
 		{
-			chunked_body.append(utils::to_hex(this->_body.size())).append("\r\n");
-			chunked_body.append(this->_body.c_str(), this->_body.size()).append("\r\n");
-			this->_body = this->_body.substr(this->_body.size());
+			this->_chunked_body.append(utils::to_hex(this->_body.size() - this->_chunked_sent)).append("\r\n");
+			s = this->_body.c_str() + this->_chunked_sent;
+			this->_chunked_body.append(s, this->_body.size() - this->_chunked_sent).append("\r\n");
+			this->_chunked_sent = this->_body.size();
 		}
-		return (chunked_body);
+		return (this->_chunked_body);
 	}
 	else
 		return (this->_body);
 }
 
+void	TmpResponse::truncate_chunk_body(int sent)
+{
+	this->_chunked_body = this->_chunked_body.c_str() + sent;
+}
+
+const std::string&	TmpResponse::get_chunked_body(void) const
+{
+	return (this->_chunked_body);
+}
+
 std::string	TmpResponse::get_header(void) const
 {
-	utils::print_msg_with_crlf(this->_header.get_response_header());
+	// utils::print_msg_with_crlf(this->_header.get_response_header());
 	return (this->_header.get_response_header());
 }
 
@@ -186,7 +198,6 @@ void	TmpResponse::handle_put(const std::string& path)
 void	TmpResponse::handle_cgi(const std::string& cgi_msg)
 {
 	this->_body = cgi_msg.substr(cgi_msg.find("\r\n\r\n") + 4);
-	std::cout << "cgi bodysize: " << this->_body.size() << std::endl;
 	this->_header.set_content_length(this->_body.size());
 	if (this->_body.size() > RESPONSE_BUFFER)
 		this->_header.set_is_chunked(true);

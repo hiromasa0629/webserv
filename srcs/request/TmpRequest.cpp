@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 12:07:26 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 21:18:12 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -254,15 +254,12 @@ void	TmpRequest::handle_post(const std::string& req)
 			filename = utils::itoa(std::time(NULL));
 			for (size_t i = 0; i < 100; i++)
 			{
-				std::ifstream	infile;
+				struct	stat	st;
 
-				infile.open((filename + "_" + utils::itoa(i) + ".chunked").c_str());
-				if (!infile.good())
-				{
-					this->_chunked_filename = filename + "_" + utils::itoa(i) + ".chunked";
-					break ;
-				}
-				infile.close();
+				if (stat((filename + "_" + utils::itoa(i) + ".chunked").c_str(), &st) == 0)
+					continue;
+				this->_chunked_filename = filename + "_" + utils::itoa(i) + ".chunked";
+				break ;
 			}
 
 			this->_chunked_outfile->open(this->_chunked_filename.c_str(), std::ios::app | std::ios::out | std::ios::binary);
@@ -342,9 +339,23 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 {
 	std::string		unchunked_filename;
 	std::string		body;
+	std::string		strsize;
+	std::ifstream	infile;
+	std::ofstream	outfile;
+	char			c;
+
+	// infile.open(this->_chunked_filename.c_str(), std::ios::binary);
+	// outfile.open(this->_chunked_filename.substr(0, this->_chunked_filename.find_first_of('.')) + ".unchunked");
+	// while (infile.get(c))
+	// {
+	// 	strsize += c;
+
+	// }
+
+
 
 	{
-		std::ifstream	infile;
+
 		size_t			size;
 
 		infile.open(this->_chunked_filename.c_str(), std::ios::binary);
@@ -383,10 +394,10 @@ std::string	TmpRequest::tidy_up_chunked_body(void)
 			i = j + 2;
 		}
 		outfile.close();
-		#if DEBUG
+#if DEBUG
 			this->_logger.debug("Received size " + utils::itoa(debug_size) + " from chunked request");
 			this->_logger.debug("Wrote to " + unchunked_filename);
-		#endif
+#endif
 	}
 
 	if (std::remove(this->_chunked_filename.c_str()) != 0)

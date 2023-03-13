@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 15:12:04 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/13 17:30:49 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,6 +82,7 @@ void	ResponseCgi::execute(void)
 			this->_response_msg.append(buf);
 			std::memset(buf, 0, READ_BUFFER + 1);
 		}
+		close(pipe_to_parent[0]);
 
 		// std::ofstream	outfile;
 
@@ -158,6 +159,7 @@ void	ResponseCgi::child_process(int* pipe_to_child, int* pipe_to_parent)
 		close(fd);
 	}
 	dup2(pipe_to_parent[1], STDOUT_FILENO);
+	close(pipe_to_parent[1]);
 
 	execve(this->_cmd.c_str(), argv.data(), envp.data());
 	for (size_t i = 0; i < envp.size(); i++)
