@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/26 21:14:01 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/09 14:50:54 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 12:16:09 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,15 +54,39 @@ void	ResponseAutoindex::construct_href(std::stringstream& ss, const char* dirnam
 
 void	ResponseAutoindex::construct_body(const std::string& s)
 {
-	this->_body = "<!DOCTYPE html>";
-	this->_body.append("<html>");
-	this->_body.append("<h1>").append(this->_path).append("</h1>");
-	this->_body.append("<hr></hr>");
-	this->_body.append(s);
-	this->_body.append("</html>");
+	std::string	body;
+
+	body = "<!DOCTYPE html>";
+	body.append("<html>");
+	body.append("<h1>").append(this->_path).append("</h1>");
+	body.append("<hr></hr>");
+	body.append(s);
+	body.append("</html>");
+
+	std::string	filename;
+
+	filename = utils::itoa(std::time(NULL));
+	for (size_t i = 0; i < 100; i++)
+	{
+		struct	stat	st;
+
+		if (stat((filename + "_" + utils::itoa(i) + ".autoindex").c_str(), &st) == 0)
+			continue;
+		this->_autoindex_filename = filename + "_" + utils::itoa(i) + ".autoindex";
+		break ;
+	}
+
+	std::ofstream	outfile(this->_autoindex_filename, std::ios::out | std::ios::binary);
+
+	if (!outfile.good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "Autoindex outfile failed");
+	outfile.write(body.c_str(), body.size());
+	outfile.close();
+
 }
 
-std::string	ResponseAutoindex::get_body(void) const
+std::string	ResponseAutoindex::get_autoindex_filename(void) const
 {
-	return (this->_body);
+	return (this->_autoindex_filename);
 }
+

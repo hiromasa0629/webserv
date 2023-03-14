@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 00:36:57 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 14:57:10 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,6 @@ void	ResponseCgi::execute(void)
 
 		char		buf[READ_BUFFER + 1];
 		ssize_t		ret;
-		std::memset(buf, 0, READ_BUFFER + 1);
 
 		this->_cgi_filename = utils::itoa(std::time(NULL));
 		for (size_t i = 0; i < 100; i++)
@@ -93,18 +92,11 @@ void	ResponseCgi::execute(void)
 			throw ServerErrorException(__LINE__, __FILE__, E500, "Cgi outfile failed");
 		while ((ret = read(pipe_to_parent[0], buf, READ_BUFFER)) > 0)
 		{
+			buf[ret] = '\0';
 			outfile.write(buf, ret);
-			// this->_cgi_filename.append(buf);
-			std::memset(buf, 0, READ_BUFFER + 1);
 		}
 		close(pipe_to_parent[0]);
 		outfile.close();
-
-		// std::ofstream	outfile;
-
-		// outfile.open("cgireturn", std::ios::out);
-		// outfile.write(this->_response_msg.c_str(), this->_response_msg.size());
-		// outfile.close();
 
 		int status;
 		if (waitpid(pid, &status, 0) == -1)

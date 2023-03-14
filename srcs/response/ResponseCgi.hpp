@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:19:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 00:23:33 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 14:56:35 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 # include "TmpRequest.hpp"
 # include <fcntl.h>
 
-# define READ_BUFFER 65536
+# define READ_BUFFER 8192
 
 class ResponseCgi {
 	public:

@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 20:34:04 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 15:30:29 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -318,6 +318,7 @@ void	Server::handle_pollout_select(int fd)
 		if (this->_fd_response.count(fd) == 0)
 		{
 			this->_fd_response.insert(std::make_pair(fd, TmpResponse(this->_fd_requests[fd], this->_fd_sconfig[fd], this->_envp)));
+			this->_fd_requests.erase(fd);
 			res.append(this->_fd_response[fd].get_header());
 			header_size = res.size();
 			res.append(this->_fd_response[fd].get_body());
@@ -332,7 +333,7 @@ void	Server::handle_pollout_select(int fd)
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
 		if (b_sent == -1)
-			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "send error"));
+			throw ServerErrorException(__LINE__, __FILE__, E1, "Send returns -1");
 		if (header_size > 0)
 			b_sent -= header_size;
 		if (this->_fd_response[fd].get_chunked_body().size() > 0)
@@ -341,15 +342,18 @@ void	Server::handle_pollout_select(int fd)
 	}
 	catch (const ServerErrorException& e)
 	{
-		this->_logger.warn(e.what());
-		this->_fd_response[fd] = TmpResponse(e.get_status(), this->_fd_sconfig[fd]);
-		res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
-
-		ssize_t	b_sent;
-
-		b_sent = send(fd, res.c_str(), res.size(), 0);
-		(void)b_sent;
 		status = e.get_status();
+		if (status != E1)
+		{
+			this->_logger.warn(e.what());
+			this->_fd_response[fd] = TmpResponse(e.get_status(), this->_fd_sconfig[fd]);
+			res.append(this->_fd_response[fd].get_header()).append(this->_fd_response[fd].get_body());
+
+			ssize_t	b_sent;
+
+			b_sent = send(fd, res.c_str(), res.size(), 0);
+			(void)b_sent;
+		}
 	}
 	catch (const std::exception& e)
 	{
@@ -376,6 +380,18 @@ void	Server::handle_pollout_select(int fd)
 	else if (this->_fd_requests[fd].get_is_complete() && (this->_fd_requests[fd].get_request_field(CONNECTION) == "close" || status != S200))
 	{
 		this->_logger.debug("Connection closed. fd: " + utils::itoa(fd));
+		FD_CLR(fd, &this->_fd_sets.second);
+		if (fd == this->_maxfd)
+			this->_maxfd--;
+		if (close(fd) != 0)
+			throw std::runtime_error(utils::construct_errro_msg(errno, __LINE__, __FILE__, "close error"));
+		this->_fd_requests.erase(fd);
+		this->_fd_response.erase(fd);
+		this->_fd_sconfig.erase(fd);
+	}
+	else if (status == E1)
+	{
+		this->_logger.warn("Connection closed. fd: " + utils::itoa(fd) + " due to send error");
 		FD_CLR(fd, &this->_fd_sets.second);
 		if (fd == this->_maxfd)
 			this->_maxfd--;

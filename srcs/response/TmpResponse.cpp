@@ -6,29 +6,35 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 01:11:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 14:34:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "TmpResponse.hpp"
 
-TmpResponse::TmpResponse(void) {}
+static	size_t	get_filesize(std::ifstream*	infile, size_t offset)
+{
+	size_t	filesize;
+
+	infile->seekg(0, infile->end);
+	filesize = infile->tellg();
+	filesize -= offset;
+	infile->seekg(offset, infile->beg);
+	return (filesize);
+}
+
+TmpResponse::TmpResponse(void) : _response_infile(NULL, 0) {}
 
 TmpResponse::~TmpResponse(void) {}
 
 TmpResponse::TmpResponse(enum StatusCode status, const ServerConfig& sconfig)
-	: _is_complete_response(true)
+	: _is_complete_response(true), _response_infile(NULL, 0)
 {
-
 	this->handle_error(status, sconfig);
-
-	this->_header.set_status(status);
-	this->_header.set_content_length(this->_body.size());
-	this->_header.construct();
 }
 
 TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, char** envp)
-	: _req(req), _is_complete_response(true), _response_config(this->_req, sconfig, envp), _chunked_sent(0)
+	: _req(req), _is_complete_response(true), _response_config(this->_req, sconfig, envp), _response_infile(NULL, 0)
 {
 	if (this->_req.get_status_code() != S200)
 		throw ServerErrorException(__LINE__, __FILE__, E400, "Bad request");
@@ -50,7 +56,7 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 	else if (this->_response_config.get_autoindex().first)
 	{
 		// Is Directory Listing
-		this->handle_autoindex(this->_response_config.get_autoindex().second.get_body());
+		this->handle_autoindex(this->_response_config.get_autoindex().second.get_autoindex_filename());
 	}
 	else if (this->_response_config.get_cgi().first)
 	{
@@ -67,10 +73,10 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 		this->handle_normal(this->_response_config.get_path());
 	}
 
-	if (this->_body.size() > RESPONSE_BUFFER || this->_cgi_infile.second > RESPONSE_BUFFER)
+	if (this->_response_infile.second > RESPONSE_BUFFER)
 	{
 #if DEBUG
-		this->_logger.debug("Sending size " + utils::itoa(this->_body.size()) + " in chunked response...");
+		this->_logger.debug("Sending size " + utils::itoa(this->_response_infile.second) + " in chunked response...");
 #endif
 		this->_is_complete_response = false;
 
@@ -84,38 +90,83 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 	}
 }
 
-
-
 std::string	TmpResponse::get_body(void)
 {
 	if (!this->_is_complete_response)
 	{
-		const char*		s;
+		std::string			s;
+		size_t				current;
 
-		if  ((this->_body.size() - this->_chunked_sent) == 0)
+		current = this->_response_infile.first->tellg();
+		if (current == this->_response_infile.second)
 		{
-			this->_chunked_body.append("0\r\n\r\n");
+			this->_chunked_body.append("0\r\n\r\n", 5);
 			this->_is_complete_response = true;
+			if (this->_response_infile.first != NULL)
+			{
+				this->_response_infile.first->close();
+				delete this->_response_infile.first;
+				this->_response_infile.first = NULL;
+			}
+
+			if (this->_response_config.get_cgi().first)
+			{
+				std::string filename = this->_response_config.get_cgi().second.get_cgi_filename();
+				filename = filename.substr(0, filename.find_first_of('.')) + ".cgi_body";
+				if (std::remove(filename.c_str()) != 0)
+					this->_logger.warn(filename + " failed to remove");
+			}
 			return (this->_chunked_body);
 		}
-		if ((this->_body.size() - this->_chunked_sent) > RESPONSE_BUFFER)
+		if ((this->_response_infile.second - current) > RESPONSE_BUFFER)
 		{
-			this->_chunked_body.append(utils::to_hex(RESPONSE_BUFFER)).append("\r\n");
-			s = this->_body.c_str() + this->_chunked_sent;
-			this->_chunked_body.append(s, RESPONSE_BUFFER).append("\r\n");
-			this->_chunked_sent += RESPONSE_BUFFER;
+			this->_chunked_body.resize(RESPONSE_BUFFER);
+			this->_response_infile.first->read(const_cast<char*>(this->_chunked_body.c_str()), RESPONSE_BUFFER);
+			this->_chunked_body.append("\r\n");
+			s.append(utils::to_hex(RESPONSE_BUFFER)).append("\r\n");
+			this->_chunked_body.insert(0, s);
 		}
 		else
 		{
-			this->_chunked_body.append(utils::to_hex(this->_body.size() - this->_chunked_sent)).append("\r\n");
-			s = this->_body.c_str() + this->_chunked_sent;
-			this->_chunked_body.append(s, this->_body.size() - this->_chunked_sent).append("\r\n");
-			this->_chunked_sent = this->_body.size();
+			size_t	remaining_filesize = get_filesize(this->_response_infile.first, current);
+
+			this->_chunked_body.resize(remaining_filesize);
+			this->_response_infile.first->read(const_cast<char*>(this->_chunked_body.c_str()), remaining_filesize);
+			this->_chunked_body.append("\r\n");
+			s.append(utils::to_hex(remaining_filesize)).append("\r\n");
+			this->_chunked_body.insert(0, s);
 		}
 		return (this->_chunked_body);
 	}
 	else
-		return (this->_body);
+	{
+		std::string	s;
+
+		if (this->_response_infile.first != NULL)
+		{
+			s.resize(this->_response_infile.second);
+			this->_response_infile.first->read(const_cast<char*>(s.c_str()), this->_response_infile.second);
+			this->_response_infile.first->close();
+			delete this->_response_infile.first;
+			this->_response_infile.first = NULL;
+
+			if (this->_response_config.get_cgi().first)
+			{
+				std::string filename = this->_response_config.get_cgi().second.get_cgi_filename();
+				filename = filename.substr(0, filename.find_first_of('.')) + ".cgi_body";
+				if (std::remove(filename.c_str()) != 0)
+					this->_logger.warn(filename + " failed to remove");
+			}
+
+			if (this->_response_config.get_autoindex().first)
+			{
+				std::string filename = this->_response_config.get_autoindex().second.get_autoindex_filename();
+				if (std::remove(filename.c_str()) != 0)
+					this->_logger.warn(filename + " failed to remove");
+			}
+		}
+		return (s);
+	}
 }
 
 void	TmpResponse::truncate_chunk_body(int sent)
@@ -130,7 +181,6 @@ const std::string&	TmpResponse::get_chunked_body(void) const
 
 std::string	TmpResponse::get_header(void) const
 {
-	// utils::print_msg_with_crlf(this->_header.get_response_header());
 	return (this->_header.get_response_header());
 }
 
@@ -197,38 +247,59 @@ void	TmpResponse::handle_put(const std::string& path)
 
 void	TmpResponse::handle_cgi(const std::string& cgi_filename)
 {
-	int				filesize;
 	char			c;
 	std::string		header;
+	size_t			filesize;
 
-	this->_response_infile.first = new std::ifstream();
-	this->_response_infile.first->open(cgi_filename.c_str(), std::ios::binary);
-	if (!this->_response_infile.first->good())
-		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_cgi this->_response_infile.first failed");
-	while (this->_response_infile.first->get(c))
+	std::ifstream	infile(cgi_filename.c_str(), std::ios::binary);
+	if (!infile.good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_cgi infile failed");
+	while (infile.get(c))
 	{
 		header += c;
 		if (header.length() > 3 && header.substr(header.length() - 4) == "\r\n\r\n")
 			break ;
 	}
-	this->_response_infile.first->seekg(0, this->_response_infile.first->end);
-	filesize = this->_response_infile.first->tellg();
-	filesize -= header.size();
-	this->_response_infile.second = filesize;
-	this->_response_infile.first->seekg(header.size(), this->_response_infile.first->beg);
 
+	filesize = get_filesize(&infile, header.size());
+	this->_response_infile.second = filesize;
 	this->_header.set_content_length(filesize);
-	if (filesize > RESPONSE_BUFFER)
+
+	if (this->_response_infile.second > RESPONSE_BUFFER)
 		this->_header.set_is_chunked(true);
 	this->_header.construct(header);
+
+	std::string		cgi_body_filname = cgi_filename.substr(0, cgi_filename.find_first_of('.')) + ".cgi_body";
+	std::ofstream	outfile(cgi_body_filname.c_str(), std::ios::out | std::ios::binary);
+	if (!outfile.good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_cgi outfile failed");
+
+	std::copy(std::istreambuf_iterator<char>(infile),
+				std::istreambuf_iterator<char>(),
+				std::ostreambuf_iterator<char>(outfile));
+
+	infile.close();
+	outfile.close();
+
+	if (std::remove(cgi_filename.c_str()) != 0)
+		this->_logger.warn(cgi_filename + " failed to remove");
+
+	this->_response_infile.first = new std::ifstream();
+	this->_response_infile.first->open(cgi_body_filname.c_str(), std::ios::binary);
+	if (!this->_response_infile.first->good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_cgi response_infile failed");
 }
 
-void	TmpResponse::handle_autoindex(const std::string& body)
+void	TmpResponse::handle_autoindex(const std::string& autoindex_filename)
 {
-	this->_body = body;
+	this->_response_infile.first = new std::ifstream();
+	this->_response_infile.first->open(autoindex_filename, std::ios::binary);
+	if (!this->_response_infile.first->good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_autoindex infile failed");
+	this->_response_infile.second = get_filesize(this->_response_infile.first, 0);
 
 	this->_header.set_status(S200);
-	this->_header.set_content_length(this->_body.size());
+	this->_header.set_content_length(this->_response_infile.second);
 	this->_header.construct();
 }
 
@@ -240,42 +311,41 @@ void	TmpResponse::handle_delete(const std::string& path)
 	this->_header.construct();
 }
 
-static std::string	read_file(const std::string& path)
-{
-	std::ifstream		infile;
-	std::stringstream	ss;
-	std::string			s;
-
-	infile.open(path.c_str(), std::ios::binary);
-	ss << infile.rdbuf();
-	s = ss.str();
-#if DEBUG
-	Logger().debug("Serving file size: " + utils::itoa(s.size()));
-#endif
-	infile.close();
-	return (s);
-}
 void	TmpResponse::handle_normal(const std::string& path)
 {
-	this->_body = read_file(path);
+	this->_response_infile.first = new std::ifstream();
+	this->_response_infile.first->open(path.c_str(), std::ios::binary);
+	if (!this->_response_infile.first->good())
+		throw ServerErrorException(__LINE__, __FILE__, E500, "handle_normal infile failed");
+	this->_response_infile.second = get_filesize(this->_response_infile.first, 0);
 
 	this->_header.set_status(S200);
-	this->_header.set_content_length(this->_body.size());
+	this->_header.set_content_length(this->_response_infile.second);
 	this->_header.construct();
-	if (this->_req.get_request_field(METHOD) == "HEAD")
-		this->_body.clear();
 }
 
 static	std::string	default_error_page(void)
 {
-	std::stringstream	ss;
-	std::string			s;
+	std::string		filename = "default_error.html";
+	struct stat		st;
 
-	ss << "<!DOCTYPE html>";
-	ss << "<html>";
-	ss << "<h1>Error</h1>";
-	ss << "</html>";
-	return (ss.str());
+	if (stat(filename.c_str(), &st) != 0)
+	{
+		std::ofstream	outfile(filename, std::ios::out | std::ios::binary);
+		if (!outfile.good())
+			throw ServerErrorException(__LINE__, __FILE__, E500, "default error_page outfile failed");
+
+		std::stringstream	ss;
+
+		ss << "<!DOCTYPE html>";
+		ss << "<html>";
+		ss << "<h1>Error</h1>";
+		ss << "</html>";
+
+		outfile.write(ss.str().c_str(), ss.str().size());
+		outfile.close();
+	}
+	return (filename);
 }
 
 void	TmpResponse::handle_error(enum StatusCode status, const ServerConfig& sconfig)
@@ -293,27 +363,19 @@ void	TmpResponse::handle_error(enum StatusCode status, const ServerConfig& sconf
 			error_file = *(it + 1);
 	}
 
+	this->_response_infile.first = new std::ifstream();
+
 	if (!error_file.empty())
 	{
-		std::ifstream	infile;
-
-		infile.open(error_file.c_str());
-		if (!infile.good())
-		{
-			this->_body = default_error_page();
-#if DEBUG
-			this->_logger.debug("Serving default error");
-#endif
-		}
-		else
-		{
-			this->_body = read_file(error_file);
-#if DEBUG
-			this->_logger.debug("Serving " + error_file);
-#endif
-		}
-		infile.close();
+		this->_response_infile.first->open(error_file.c_str(), std::ios::binary);
+		if (!this->_response_infile.first->good())
+			this->_response_infile.first->open(default_error_page().c_str(), std::ios::binary);
 	}
 	else
-		this->_body = default_error_page();
+		this->_response_infile.first->open(default_error_page().c_str(), std::ios::binary);
+	this->_response_infile.second = get_filesize(this->_response_infile.first, 0);
+
+	this->_header.set_status(status);
+	this->_header.set_content_length(this->_response_infile.second);
+	this->_header.construct();
 }

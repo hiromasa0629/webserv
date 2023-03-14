@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/02/28 13:21:02 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 16:19:56 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,9 @@ Socket::Socket(void) : _logger()
 Socket::Socket(int ai_flags, int ai_family, int ai_socktype, int ai_protocol, const ServerConfig& sconfig) : _logger()
 {
 	addrinfo_t	hint;
-	
+
 	this->_config = sconfig;
-	
+
 	hint.ai_flags = ai_flags;
 	hint.ai_family = ai_family;
 	hint.ai_socktype = ai_socktype;
@@ -52,7 +52,7 @@ Socket&	Socket::operator=(const Socket &rhs)
 {
 	if (this == &rhs)
 		return (*this);
-		
+
 	addrinfo_t*	tmp;
 	addrinfo_t*	tmpaddr;
 	addrinfo_t* rhsaddr;
@@ -63,7 +63,7 @@ Socket&	Socket::operator=(const Socket &rhs)
 	tmp->ai_socktype = rhs._addrinfo->ai_socktype;
 	tmp->ai_protocol = rhs._addrinfo->ai_protocol;
 	tmp->ai_addrlen = rhs._addrinfo->ai_addrlen;
-	
+
 	if (rhs._addrinfo->ai_canonname != NULL)
 	{
 		tmp->ai_canonname = new char[std::strlen(rhs._addrinfo->ai_canonname)];
@@ -110,8 +110,8 @@ void	Socket::init_addrinfo(const addrinfo_t& hint)
 	Config::StrToSConfigMap::iterator	it;
 	std::string							host;
 	std::string							port;
-	
-	
+
+
 	host = this->_config.get_directives("listen")[0];
 	port = this->_config.get_directives("listen")[1];
 	gai = getaddrinfo(host.c_str(), port.c_str(), &hint, &(this->_addrinfo));
@@ -128,6 +128,14 @@ void	Socket::init_socket(void)
 	if (this->_socketfd < 0)
 		throw std::runtime_error("Socket::init_socket()");
 	setsockopt(this->_socketfd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(tmp));
+	int	optval = 65536;
+	setsockopt(this->_socketfd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
+	int	recvbuf_size;
+
+	socklen_t optlen = sizeof(recvbuf_size);
+	getsockopt(this->_socketfd, SOL_SOCKET, SO_RCVBUF, &recvbuf_size, &optlen);
+	std::cout << "recvsize: " << recvbuf_size << std::endl;
+
 	this->_logger.info<std::string>("Socket::init_socket " + *this);
 }
 
@@ -136,7 +144,7 @@ std::string	Socket::get_ip(void) const
 	std::stringstream		ss;
 	struct sockaddr_in*		s;
 	unsigned char*			p;
-	
+
 	if (this->_addrinfo->ai_addr->sa_family == AF_INET)
 	{
 		s = (struct sockaddr_in *)this->_addrinfo->ai_addr;
@@ -155,7 +163,7 @@ std::string	Socket::get_port(void) const
 	ss << port;
 	return (ss.str());
 }
-	
+
 int	Socket::get_socketfd(void) const
 {
 	return (this->_socketfd);
@@ -174,7 +182,7 @@ const ServerConfig&	Socket::get_sconfig(void) const
 std::string	operator+(const char* s, const Socket& socket)
 {
 	std::stringstream	ss;
-	
+
 	ss << s << socket.get_ip() << ":" << socket.get_port();
 	return (ss.str());
 }

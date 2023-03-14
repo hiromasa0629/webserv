@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/23 16:26:53 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 12:53:41 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 15:52:32 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,11 +65,12 @@ void	ResponseHeader::construct(const std::string& header)
 	this->_response_header = h;
 
 	std::stringstream	ss;
-	if (!this->_is_chunked)
+	if (!this->_is_chunked && this->_response_header.find("Content-Length:") == std::string::npos)
 	{
 		ss << "Content-Length: " << this->_content_length << "\r\n";
 		this->_response_header.insert(this->_response_header.length() - 2, ss.str());
 	}
+	// utils::print_msg_with_crlf(this->_response_header);
 
 
 	ss.clear();

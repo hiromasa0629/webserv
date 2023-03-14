@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:25:47 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/12 16:24:10 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 15:37:59 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,6 @@
 # include "Config.hpp"
 # include "Logger.hpp"
 # include <sys/select.h>
-# include "Request.hpp"
 # include <csignal>
 # include "TmpResponse.hpp"
 # include "TmpRequest.hpp"

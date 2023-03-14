@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/13 15:21:24 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 01:12:09 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 15:24:33 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,8 @@ enum StatusCode {
 	E500	= 500,	// Internal Server Error
 	S200	= 200,
 	S301	= 301,	// Moved Permanently
-	E0		= 0		//	Empty request
+	E0		= 0,	//	Empty request
+	E1		= 1		// Send failed
 };
 
 namespace utils {
