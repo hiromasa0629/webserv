@@ -196,29 +196,17 @@ Accept-Language: en-US,en;q=0.9\r\n
 ```
 POST /api/login HTTP/1.1\r\n
 Host: www.example.com\r\n
-Content-Type: application/x-www-form-urlencoded\r\n
 Content-Length: 23\r\n
 \r\n
 username=johndoe&password=secret\r\n
 \r\n
 ```
-example of form data. Each line ends with crlf
+## Testing using CURL
+POST request
 ```
-------WebKitFormBoundaryEzYoUBJs8wtxsDPZ
-Content-Disposition: form-data; name="file"; filename="helloworld.jpeg"
-Content-Type: image/jpeg
-
-hello world
-
-------WebKitFormBoundaryEzYoUBJs8wtxsDPZ--
-
-body_size: 7
-
-------WebKitFormBoundaryEzYoUBJs8wtxsDPZ
-Content-Disposition: form-data; name="file"; filename="helloworld.jpeg"
-Content-Type: image/jpeg
-
-hello world
-
-------WebKitFormBoundaryEzYoUBJs8wtxsDPZ--
+curl -X POST -d 'helloworld' [URI]
+```
+Test server_name
+```
+curl --resolve [server_name]:[port]:[ip] [uri with server_name]
 ```
