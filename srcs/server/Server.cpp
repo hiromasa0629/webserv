@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/15 15:57:00 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 15:59:05 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -328,7 +328,6 @@ void	Server::handle_pollout_select(int fd)
 		else
 			res.append(this->_fd_response[fd].get_body());
 
-		std::cout << res << std::endl;
 		ssize_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);
