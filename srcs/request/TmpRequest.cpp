@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/03 17:56:35 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/13 23:26:33 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 14:57:23 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -140,7 +140,6 @@ void	TmpRequest::extract_header_info(void)
 	this->_header_info.insert(std::make_pair(PROTOCOL, split[2]));
 	for (size_t i = 1; i < header_lines.size(); i++)
 	{
-		// this->_logger.warn(header_lines[i]);
 		split = utils::ft_split(header_lines[i]);
 		if (split.front() == "Host:")
 		{

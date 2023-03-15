@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/15 13:07:21 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 14:40:12 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,7 @@ TmpResponse::TmpResponse(const TmpRequest& req, const ServerConfig& sconfig, cha
 		this->handle_normal(this->_response_config.get_path());
 	}
 
-	if (this->_response_infile.second > RESPONSE_BUFFER)
+	if (this->_response_infile.second > RESPONSE_BUFFER && this->_req.get_request_field(METHOD) != "HEAD")
 	{
 #if DEBUG
 		this->_logger.debug("Sending size " + utils::itoa(this->_response_infile.second) + " in chunked response...");
@@ -137,6 +137,10 @@ std::string	TmpResponse::get_body(void)
 			this->_chunked_body.insert(0, s);
 		}
 		return (this->_chunked_body);
+	}
+	else if (this->_req.get_request_field(METHOD) == "HEAD")
+	{
+		return ("");
 	}
 	else
 	{

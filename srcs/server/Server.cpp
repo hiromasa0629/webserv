@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 15:30:29 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 15:16:43 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -318,7 +318,6 @@ void	Server::handle_pollout_select(int fd)
 		if (this->_fd_response.count(fd) == 0)
 		{
 			this->_fd_response.insert(std::make_pair(fd, TmpResponse(this->_fd_requests[fd], this->_fd_sconfig[fd], this->_envp)));
-			this->_fd_requests.erase(fd);
 			res.append(this->_fd_response[fd].get_header());
 			header_size = res.size();
 			res.append(this->_fd_response[fd].get_body());
@@ -329,6 +328,7 @@ void	Server::handle_pollout_select(int fd)
 		else
 			res.append(this->_fd_response[fd].get_body());
 
+		std::cout << res << std::endl;
 		ssize_t	b_sent;
 
 		b_sent = send(fd, res.c_str(), res.size(), 0);

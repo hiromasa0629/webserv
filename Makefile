@@ -6,7 +6,7 @@
 #    By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2023/02/04 01:21:04 by hyap              #+#    #+#              #
-#    Updated: 2023/03/11 19:23:57 by hyap             ###   ########.fr        #
+#    Updated: 2023/03/15 14:01:34 by hyap             ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -33,7 +33,7 @@ INCLUDES	= -Isrcs/utils \
 				-Isrcs/logger \
 				-Isrcs/request \
 				-Isrcs/response
-LDFLAGS		= -lstdc++ -fsanitize=address -g
+LDFLAGS		= -lstdc++ -fsanitize=address -g3
 
 TESTFILE	= tests/test.conf
 BANANE		= tests/youpibanane.conf
