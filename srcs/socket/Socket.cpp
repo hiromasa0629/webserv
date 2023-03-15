@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:54 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 16:19:56 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/14 16:36:57 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,8 +128,8 @@ void	Socket::init_socket(void)
 	if (this->_socketfd < 0)
 		throw std::runtime_error("Socket::init_socket()");
 	setsockopt(this->_socketfd, SOL_SOCKET, SO_REUSEADDR, &tmp, sizeof(tmp));
-	int	optval = 65536;
-	setsockopt(this->_socketfd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
+	// int	optval = 65536;
+	// setsockopt(this->_socketfd, SOL_SOCKET, SO_RCVBUF, &optval, sizeof(optval));
 	int	recvbuf_size;
 
 	socklen_t optlen = sizeof(recvbuf_size);

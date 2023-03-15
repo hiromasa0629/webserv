@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 23:21:21 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 14:34:05 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 13:07:21 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,7 +171,7 @@ std::string	TmpResponse::get_body(void)
 
 void	TmpResponse::truncate_chunk_body(int sent)
 {
-	this->_chunked_body = this->_chunked_body.c_str() + sent;
+	this->_chunked_body.erase(0, sent);
 }
 
 const std::string&	TmpResponse::get_chunked_body(void) const
