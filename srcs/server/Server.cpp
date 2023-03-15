@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/02/04 00:27:33 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/15 15:59:05 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 21:00:39 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -101,13 +101,21 @@ void	Server::init_bind(void)
 {
 	std::vector<Socket>::iterator	it;
 
-	it = this->_sockets.begin();
-	for (; it != this->_sockets.end(); it++)
+	// it = this->_sockets.begin();
+	// for (; it != this->_sockets.end(); it++)
+	// {
+	// 	if (bind(it->get_socketfd(), it->get_addrinfo()->ai_addr, it->get_addrinfo()->ai_addrlen) < 0)
+	// 		throw std::runtime_error("Server::init_bind() " + *it);
+	// 	this->_logger.info("Server::init_bind() " + *it);
+	// }
+	for (size_t i = 0; i < this->_sockets.size(); i++)
 	{
-		if (bind(it->get_socketfd(), it->get_addrinfo()->ai_addr, it->get_addrinfo()->ai_addrlen) < 0)
-			throw std::runtime_error("Server::init_bind() " + *it);
-		this->_logger.info("Server::init_bind() " + *it);
+		if (bind(this->_sockets[i].get_socketfd(), this->_sockets[i].get_addrinfo()->ai_addr, this->_sockets[i].get_addrinfo()->ai_addrlen) < 0)
+			this->_sockets.erase(this->_sockets.begin() + i);
+		this->_logger.info("Server::init_bind() " + this->_sockets[i]);
 	}
+	if (this->_sockets.size() == 0)
+		throw std::runtime_error("Server::init_bind() ");
 }
 
 void	Server::init_listen(void)
@@ -151,7 +159,7 @@ std::string			Server::read_request(int fd)
 		ret = recv(fd, buf, BUFFER_SIZE, 0);
 	}
 	if (ret == -1)
-		throw std::runtime_error("Recv()");
+		throw ServerErrorException(__LINE__, __FILE__, E0, "Recv failed");
 	return (res);
 }
 

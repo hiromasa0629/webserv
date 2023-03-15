@@ -6,7 +6,7 @@
 /*   By: hyap <hyap@student.42kl.edu.my>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/03/07 20:20:43 by hyap              #+#    #+#             */
-/*   Updated: 2023/03/14 14:57:10 by hyap             ###   ########.fr       */
+/*   Updated: 2023/03/15 21:08:56 by hyap             ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,6 +110,10 @@ void	ResponseCgi::execute(void)
 			if (std::remove(this->_req.get_unchunked_filename().c_str()) != 0)
 				this->_logger.warn("Unchunked file failed to remove");
 		}
+
+		if (WIFEXITED(status))
+			if (WEXITSTATUS(status) != 0)
+				throw ServerErrorException(__LINE__, __FILE__, E500, "Cgi executed failed");
 	}
 }
 
